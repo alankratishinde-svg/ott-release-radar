@@ -178,15 +178,26 @@ async function fetchTmdbFallback(windowDays: number, only?: Platform[]): Promise
   for (const platform of (only ?? (Object.keys(TMDB_PROVIDERS) as Platform[]))) for (const type of ["movie", "tv"] as const) jobs.push({ platform, type });
   const found = await pool(jobs, 6, async (j) => {
     const dateKey = j.type === "movie" ? "primary_release_date" : "first_air_date";
-    const r = await tmdb(`/discover/${j.type}`, {
+    const base = {
       watch_region: "IN",
       with_watch_providers: TMDB_PROVIDERS[j.platform].join("|"),
       with_watch_monetization_types: "flatrate",
-      [`${dateKey}.gte`]: from,
-      [`${dateKey}.lte`]: to,
       sort_by: "popularity.desc",
-    });
-    return (r.results ?? []).map((x: any) => ({ ...j, id: x.id, date: x.release_date ?? x.first_air_date ?? to }));
+    };
+    const queries: Record<string, string | number>[] = [
+      { ...base, [`${dateKey}.gte`]: from, [`${dateKey}.lte`]: to, page: 1 },
+      { ...base, [`${dateKey}.gte`]: from, [`${dateKey}.lte`]: to, page: 2 },
+    ];
+    // Movies: also use India's own digital/physical/TV release date (catches films that hit OTT after a theatrical run)
+    if (j.type === "movie") queries.push({ ...base, region: "IN", with_release_type: "4|5|6", "release_date.gte": from, "release_date.lte": to });
+    const out: any[] = [];
+    for (const qy of queries) {
+      try {
+        const r = await tmdb(`/discover/${j.type}`, qy);
+        for (const x of r.results ?? []) out.push({ ...j, id: x.id, date: x.release_date ?? x.first_air_date ?? to });
+      } catch {}
+    }
+    return out;
   });
   const flat = found.flat() as { platform: Platform; type: "movie" | "tv"; id: number; date: string }[];
   if (!flat.length) throw new Error("tmdb fallback returned nothing");
@@ -229,20 +240,21 @@ function countPlatforms(titles: Title[]) {
 export async function fetchReleases(windowDays: number): Promise<FetchResult> {
   try {
     const wm = await fetchWatchmode(windowDays);
-    // Watchmode sometimes has no India data for a platform at all: backfill only that platform from TMDB, labelled honestly.
-    const missing = (Object.keys(TMDB_PROVIDERS) as Platform[]).filter((p) => !wm.perPlatform[p]);
-    if (missing.length) {
-      try {
-        const extra = await fetchTmdbFallback(windowDays, missing);
-        const map = new Map(wm.titles.map((t) => [t.key, t] as const));
-        for (const t of extra.titles) merge(map, t);
-        wm.titles = [...map.values()];
-        wm.perPlatform = countPlatforms(wm.titles);
-        wm.label = `Live from Watchmode (region IN) + TMDB for ${missing.join(", ")} (Watchmode had none; dates less precise)`;
-        wm.note += `; tmdb backfill for ${missing.join(",")}=${extra.titles.length}`;
-      } catch (e) {
-        wm.note += `; tmdb backfill failed: ${(e as Error).message}`;
-      }
+    // Watchmode's India release feed is thin for Prime Video and JioHotstar: always merge TMDB discover for all 3 platforms.
+    try {
+      const extra = await fetchTmdbFallback(windowDays);
+      const map = new Map(wm.titles.map((t) => [t.key, t] as const));
+      const before = countPlatforms(wm.titles);
+      for (const t of extra.titles) merge(map, t);
+      wm.titles = [...map.values()];
+      wm.perPlatform = countPlatforms(wm.titles);
+      const gaps = (Object.keys(TMDB_PROVIDERS) as Platform[]).filter((p) => (wm.perPlatform[p] ?? 0) > (before[p] ?? 0));
+      wm.label = gaps.length
+        ? `Live from Watchmode (region IN) + TMDB discover for ${gaps.join(", ")} (Watchmode coverage is thin there; those dates are less precise)`
+        : wm.label;
+      wm.note += `; tmdb added ${JSON.stringify(Object.fromEntries(gaps.map((p) => [p, (wm.perPlatform[p] ?? 0) - (before[p] ?? 0)])))}`;
+    } catch (e) {
+      wm.note += `; tmdb merge failed: ${(e as Error).message}`;
     }
     return wm;
   } catch (e) {

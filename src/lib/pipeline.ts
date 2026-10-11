@@ -39,7 +39,7 @@ function toEntry(t: Title, v?: { synopsis_line_1: string; synopsis_line_2: strin
   };
 }
 
-async function upsertReleases(titles: Title[], source: string): Promise<Map<string, number>> {
+async function upsertReleases(titles: Title[]): Promise<Map<string, number>> {
   const ids = new Map<string, number>();
   const jobs = titles.flatMap((t) => t.platforms.map((p) => ({ t, p })));
   let i = 0;
@@ -54,7 +54,7 @@ async function upsertReleases(titles: Title[], source: string): Promise<Map<stri
              runtime=EXCLUDED.runtime, episode_count=EXCLUDED.episode_count, overview=EXCLUDED.overview, poster_url=EXCLUDED.poster_url,
              release_date=EXCLUDED.release_date, source=EXCLUDED.source, fetched_at=now()
            RETURNING id`,
-          [t.key, p, t.title, t.mediaType, t.genres, t.language, t.runtime, t.episodes, t.overview, t.poster, t.releaseDate, source],
+          [t.key, p, t.title, t.mediaType, t.genres, t.language, t.runtime, t.episodes, t.overview, t.poster, t.releaseDate, t.source],
         );
         if (!ids.has(t.key)) ids.set(t.key, r[0].id);
       }
@@ -76,7 +76,7 @@ export async function generateDigest(): Promise<DigestView> {
   }
   console.log(`[pipeline] window=${windowDays} source=${fetched.source} fetched=${fetched.titles.length} per-platform=${JSON.stringify(fetched.perPlatform)} filtered=${f.main.length} wild=${f.wildcards.length} ${fetched.note ?? ""}`);
 
-  const stored = await safe(() => upsertReleases(fetched.titles, fetched.source));
+  const stored = await safe(() => upsertReleases(fetched.titles));
   const now = new Date();
 
   let entries: Entry[] = [];
