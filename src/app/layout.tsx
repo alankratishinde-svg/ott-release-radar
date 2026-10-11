@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Fraunces, JetBrains_Mono } from "next/font/google";
+import { Bebas_Neue, DM_Sans } from "next/font/google";
 import "./globals.css";
 
-const serif = Fraunces({ subsets: ["latin"], variable: "--serif", axes: ["opsz"] });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--mono" });
+const sans = DM_Sans({ subsets: ["latin"], variable: "--sans" });
+const display = Bebas_Neue({ subsets: ["latin"], weight: "400", variable: "--display" });
 
 export const metadata: Metadata = {
   title: "OTT Release Radar",
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${serif.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${display.variable}`}>
       <body>{children}</body>
     </html>
   );

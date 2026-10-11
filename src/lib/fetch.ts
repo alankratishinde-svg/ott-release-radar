@@ -72,6 +72,8 @@ interface Detail {
   episodes: number | null;
   overview: string;
   poster: string | null;
+  backdrop: string | null;
+  year: string | null;
   inPlatforms: Set<Platform>;
   hasInData: boolean;
 }
@@ -97,6 +99,8 @@ async function details(type: "movie" | "tv", id: number, season?: number | null)
       episodes,
       overview: (d.overview ?? "").trim(),
       poster: d.poster_path ? `https://image.tmdb.org/t/p/w342${d.poster_path}` : null,
+      backdrop: d.backdrop_path ? `https://image.tmdb.org/t/p/w1280${d.backdrop_path}` : null,
+      year: String(d.release_date ?? d.first_air_date ?? "").slice(0, 4) || null,
       inPlatforms: new Set(ids.map((i) => PROVIDER_TO_PLATFORM.get(i)).filter(Boolean) as Platform[]),
       hasInData: !!inData && ids.length > 0,
     };
@@ -156,6 +160,8 @@ async function fetchWatchmode(windowDays: number): Promise<FetchResult> {
       episodes: x.episodes,
       overview: x.overview,
       poster: x.poster,
+      backdrop: x.backdrop,
+      year: x.year,
       releaseDate: c.date,
       source: "watchmode",
       unverified: !x.hasInData,
@@ -218,6 +224,8 @@ async function fetchTmdbFallback(windowDays: number, only?: Platform[]): Promise
       episodes: x.episodes,
       overview: x.overview,
       poster: x.poster,
+      backdrop: x.backdrop,
+      year: x.year,
       releaseDate: c.date,
       source: "tmdb",
     });

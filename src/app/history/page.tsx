@@ -14,8 +14,9 @@ export default async function History() {
     ),
   );
   return (
+    <>
+    <Nav />
     <main className="wrap">
-      <Nav />
       <h1>History</h1>
       <p className="sub">Every digest ever generated, read from Neon.</p>
       {!rows && <div className="banner warn">Storage unavailable.</div>}
@@ -35,5 +36,6 @@ export default async function History() {
         </div>
       ))}
     </main>
+    </>
   );
 }

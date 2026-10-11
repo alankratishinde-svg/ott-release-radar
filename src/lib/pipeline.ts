@@ -33,6 +33,8 @@ function toEntry(t: Title, v?: { synopsis_line_1: string; synopsis_line_2: strin
     reason: v ? v.reason : "",
     mood: v ? v.mood_tag : "",
     poster: t.poster,
+    backdrop: t.backdrop,
+    year: t.year,
     releaseDate: t.releaseDate,
     isDare: false,
     isPick: false,

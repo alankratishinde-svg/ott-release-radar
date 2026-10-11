@@ -6,8 +6,9 @@ export const metadata = { title: "Components map · OTT Release Radar" };
 
 export default function MapPage() {
   return (
+    <>
+    <Nav />
     <main className="wrap" style={{ maxWidth: 1180 }}>
-      <Nav />
       <h1>Components map</h1>
       <p className="sub">One row per actor. Steps 1–8 run in flow order; step 8 is Naman deciding what to watch.</p>
       <div className="scroll">
@@ -86,5 +87,6 @@ export default function MapPage() {
         Neon row detail: the <b>profile is read at step 4 (filter)</b>; writes land at step 3 (<code>releases</code>), step 5 (<code>digests</code> + <code>verdicts</code>) and step 6 (<code>sends</code>).
       </p>
     </main>
+    </>
   );
 }

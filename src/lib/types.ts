@@ -12,6 +12,8 @@ export interface Title {
   episodes: number | null;
   overview: string;
   poster: string | null;
+  backdrop: string | null;
+  year: string | null;
   releaseDate: string; // YYYY-MM-DD
   source: "watchmode" | "tmdb";
   unverified?: boolean;
@@ -37,6 +39,8 @@ export interface Entry {
   reason: string;
   mood: string;
   poster: string | null;
+  backdrop?: string | null;
+  year?: string | null;
   releaseDate: string;
   isDare: boolean;
   isPick: boolean;
