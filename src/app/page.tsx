@@ -1,9 +1,11 @@
+import GraveRow from "@/components/GraveRow";
 import Nav from "@/components/Nav";
 import SendButton from "@/components/SendButton";
+import TimeBudget from "@/components/TimeBudget";
 import Ticket from "@/components/Ticket";
 import { getOrCreateDigest } from "@/lib/pipeline";
-import { fmtTimeIST } from "@/lib/week";
 import type { DigestView } from "@/lib/types";
+import { fmtTimeIST, ist } from "@/lib/week";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -24,47 +26,55 @@ export default async function Home() {
     return (
       <main className="wrap">
         <Nav />
-        <h1>OTT Release Radar</h1>
-        <div className="banner warn">Could not build a digest right now: {error}. Storage unavailable or an upstream API is down; try again shortly.</div>
+        <h1 className="brand">OTT Release Radar</h1>
+        <div className="banner warn">We couldn&apos;t build this week&apos;s digest: {error}. Reload in a minute. If it keeps failing, check the Neon and API keys.</div>
       </main>
     );
   }
 
+  const when = ist(new Date(view.createdAt)).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
   const watch = view.entries.filter((e) => e.verdict === "WATCH");
   const pick = watch.find((e) => e.isPick);
   const lineup = watch.filter((e) => !e.isPick);
   const skip = view.entries.filter((e) => e.verdict === "SKIP");
   const unjudged = view.entries.filter((e) => e.verdict === "UNAVAILABLE");
+  const worth = watch.length + (view.dare ? 1 : 0);
 
   return (
     <main className="wrap">
       <Nav />
-      <h1>OTT Release Radar</h1>
-      <p className="sub">What actually landed on Netflix, Prime Video and JioHotstar in India. Not trending. Not recommended. Released.</p>
+      <header className="head">
+        <p className="brand">OTT Release Radar</p>
+        <h1>{when}</h1>
+        <p className="lede">
+          {view.quiet ? "A quiet week. Nothing cleared your filters." : <>{worth} worth your time, out of {view.counts.fetched} new on Netflix, Prime Video and JioHotstar in India.</>}
+        </p>
+        <div className="actions">
+          <SendButton />
+          <details className="how">
+            <summary>How this was made</summary>
+            <p>
+              {view.sourceLabel}. {view.counts.filtered} titles matched your languages and genres, and {view.counts.skip} of them got a skip.
+              {view.model ? ` Judged by ${view.model}.` : ""} {view.storage ? "Saved in Neon" : "Storage unavailable"}, fetched {fmtTimeIST(new Date(view.createdAt))}{cached ? ", served from the 6-hour cache" : ""}.
+            </p>
+          </details>
+        </div>
+      </header>
 
-      <div className="bar">
-        <span className="badge"><i /> {view.sourceLabel}{view.storage ? ", stored in Neon" : ""}, fetched {fmtTimeIST(new Date(view.createdAt))}{cached ? " (served from Neon cache)" : ""}</span>
-        <SendButton />
-      </div>
+      {!view.storage && <div className="banner warn">Storage is unavailable, so this digest was generated live and not saved.</div>}
+      {view.windowDays > 7 && <div className="banner">Demo window: showing the last {view.windowDays} days because this week was quiet.</div>}
 
-      {!view.storage && <div className="banner warn">Storage unavailable: this digest was generated live but could not be saved.</div>}
-      {view.windowDays > 7 && <div className="banner">Demo window: showing last {view.windowDays} days because this week was quiet.</div>}
-
-      <div className="stats">
-        <span><b>{view.counts.fetched}</b>new in India</span>
-        <span><b>{view.counts.filtered}</b>passed your filter</span>
-        <span><b>{view.counts.watch}</b>watch</span>
-        <span><b>{view.counts.skip}</b>skip</span>
-        {view.model && <span><b>{view.model}</b>judge</span>}
-      </div>
-
-      {view.quiet && <div className="banner">Quiet week. Nothing that clears the filters landed on the three platforms.</div>}
-
-      {pick && (<><h2 className="sec">Tonight&apos;s pick</h2><Ticket e={pick} variant="pick" /></>)}
-      {lineup.length > 0 && (<><h2 className="sec">The weekend lineup</h2>{lineup.map((e) => <Ticket key={e.title} e={e} />)}</>)}
-      {view.dare && (<><h2 className="sec">Gemini&apos;s dare</h2><Ticket e={view.dare} variant="dare" /></>)}
-      {unjudged.length > 0 && (<><h2 className="sec">Unjudged (AI verdict unavailable)</h2>{unjudged.map((e) => <Ticket key={e.title} e={e} />)}</>)}
-      {skip.length > 0 && (<div className="grave"><h2 className="sec">Skip graveyard</h2>{skip.map((e) => <Ticket key={e.title} e={e} />)}</div>)}
+      {pick && (<section><h2 className="sec">Tonight&apos;s pick</h2><Ticket e={pick} variant="hero" /></section>)}
+      {lineup.length > 0 && (<section><h2 className="sec">The weekend lineup <span className="sec-note">{lineup.length}</span></h2>{lineup.map((e) => <Ticket key={e.title} e={e} />)}</section>)}
+      {view.dare && (<section><h2 className="sec">Gemini&apos;s dare <span className="sec-note">outside your usual genres, on purpose</span></h2><Ticket e={view.dare} variant="dare" /></section>)}
+      {unjudged.length > 0 && (<section><h2 className="sec">No verdict yet <span className="sec-note">AI verdict unavailable</span></h2>{unjudged.map((e) => <Ticket key={e.title} e={e} />)}</section>)}
+      <TimeBudget picks={[...watch, ...(view.dare ? [view.dare] : [])]} />
+      {skip.length > 0 && (
+        <section>
+          <h2 className="sec">Skip graveyard <span className="sec-note">{skip.length} titles, tap one for the synopsis</span></h2>
+          <div className="grave">{skip.map((e) => <GraveRow key={e.title} e={e} />)}</div>
+        </section>
+      )}
     </main>
   );
 }
