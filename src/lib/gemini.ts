@@ -70,11 +70,11 @@ const SCHEMA = {
   required: ["verdicts", "dare_id"],
 };
 
-async function generate(model: string, system: string, user: string): Promise<string> {
+export async function geminiGenerate(model: string, system: string, user: string, schema: unknown = SCHEMA, temperature = 0.8): Promise<string> {
   const body = {
     systemInstruction: { parts: [{ text: system }] },
     contents: [{ role: "user", parts: [{ text: user }] }],
-    generationConfig: { responseMimeType: "application/json", responseSchema: SCHEMA, temperature: 0.8, maxOutputTokens: 20000 },
+    generationConfig: { responseMimeType: "application/json", responseSchema: schema, temperature, maxOutputTokens: 20000 },
   };
   let lastErr = "";
   for (let i = 0; i < 3; i++) {
@@ -148,11 +148,11 @@ export async function judge(main: Title[], wildcards: Title[], prefs: Prefs): Pr
     try {
       let raw: string;
       try {
-        raw = await generate(model, SYSTEM + strict, JSON.stringify(payload));
+        raw = await geminiGenerate(model, SYSTEM + strict, JSON.stringify(payload));
       } catch (e: any) {
         if (!e.modelRejected) throw e;
         model = await newestFlash(); // model name rejected: re-list and retry
-        raw = await generate(model, SYSTEM + strict, JSON.stringify(payload));
+        raw = await geminiGenerate(model, SYSTEM + strict, JSON.stringify(payload));
       }
       const res = validate(raw, ids);
       const mainVerdicts = [...res.verdicts.values()].filter((v) => v.id < main.length);

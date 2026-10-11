@@ -7,7 +7,7 @@ export const metadata = { title: "Components map · OTT Release Radar" };
 export default function MapPage() {
   return (
     <>
-    <Nav />
+    <Nav solid />
     <main className="wrap" style={{ maxWidth: 1180 }}>
       <h1>Components map</h1>
       <p className="sub">One row per actor. Steps 1–8 run in flow order; step 8 is Naman deciding what to watch.</p>
@@ -79,6 +79,80 @@ export default function MapPage() {
               <td>Reads the pick, lineup, dare, graveyard and time budget</td>
               <td>None</td>
               <td>Decides what to watch this weekend</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <h2 style={{ marginTop: 56, fontSize: 28 }}>Picker flow</h2>
+      <p className="sub">The &ldquo;Ugh, fine. Pick for me.&rdquo; page. It searches the full India catalogue, not just this week&apos;s releases.</p>
+      <div className="scroll">
+        <table>
+          <thead>
+            <tr><th>Actor</th><th>Trigger</th><th>Input</th><th>Context</th><th>Processing</th><th>AI</th><th>Output</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><S n={1} />User</td>
+              <td>Opens <code>/pick</code>, taps mood and filter chips, presses the button</td>
+              <td>Moods, optional free text (300 chars), genre, language, format, platform, time, company, hidden gems, freshness, exclude list</td>
+              <td>Their mood right now</td>
+              <td>Browser POSTs to <code>/api/pick</code></td>
+              <td>None</td>
+              <td>JSON request</td>
+            </tr>
+            <tr>
+              <td><S n={2} /><code>/api/pick</code> route</td>
+              <td>POST from the page</td>
+              <td>Request body</td>
+              <td>IP hash; identical request within 10 minutes</td>
+              <td>Validate and clamp every field; allow 8 picks per minute per IP hash; serve a cached answer when the same filters and mood repeat</td>
+              <td>None</td>
+              <td>Candidate search, or a cached result</td>
+            </tr>
+            <tr>
+              <td><S n={3} />Neon cache</td>
+              <td>First lookup, and every write-back</td>
+              <td>Platform, language, format</td>
+              <td><code>catalog</code> (24h TTL), <code>pick_cache</code> (10 min), <code>picks</code> (log and rate limit)</td>
+              <td>Hard filters in code: platform, language, format, time, company, exclude, hidden gems. Genre is only ranking. Fewer than 15 candidates triggers a live fetch</td>
+              <td>None</td>
+              <td>Candidates, or a request to TMDB</td>
+            </tr>
+            <tr>
+              <td><S n={4} />TMDB</td>
+              <td>Fewer than 15 cached candidates</td>
+              <td><code>discover</code> with <code>watch_region=IN</code>, provider ids, language, genre steering, vote floor, two pages</td>
+              <td>Provider ids for Netflix, Prime Video, JioHotstar</td>
+              <td>Details for the top ~30: runtime, episodes, seasons, rating, certificate. Upsert into <code>catalog</code>. If nothing matches, relax genre, then time, then freshness. Platform, language and format are never relaxed</td>
+              <td>None</td>
+              <td>Ranked top 25 candidates, plus a list of what was relaxed</td>
+            </tr>
+            <tr>
+              <td><S n={5} />Gemini Flash</td>
+              <td>One call per uncached pick</td>
+              <td>The 25 candidates, mood and filters. Free text is passed as quoted data, never as instructions</td>
+              <td>Overviews only</td>
+              <td>Structured JSON, validated against the candidate ids; one retry, then the top-ranked candidate labelled &ldquo;AI unavailable&rdquo;</td>
+              <td><b>Picks one title and a Plan B</b>, writes the sassy reason, scores the mood match</td>
+              <td>Pick, Plan B, reasons, mood-match %</td>
+            </tr>
+            <tr>
+              <td><S n={6} />Result card</td>
+              <td>Response arrives</td>
+              <td>Pick, Plan B, any relaxed filters</td>
+              <td>Row stored in <code>picks</code></td>
+              <td>Shows the ticket with a &ldquo;Tonight&apos;s verdict&rdquo; stamp, a banner when filters were relaxed, and a Plan B card</td>
+              <td>None</td>
+              <td>What to watch, on screen</td>
+            </tr>
+            <tr>
+              <td><S n={7} />User (decides)</td>
+              <td>Reads the card</td>
+              <td>The verdict</td>
+              <td>Whether it feels right</td>
+              <td>Presses <b>Pick again</b> (exclude list grows, nothing repeats), <b>Send to Telegram</b> (shares the 60s limit with the digest), or goes and watches</td>
+              <td>None</td>
+              <td>A decision</td>
             </tr>
           </tbody>
         </table>

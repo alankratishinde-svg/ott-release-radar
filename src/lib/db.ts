@@ -93,6 +93,47 @@ CREATE TABLE IF NOT EXISTS sends (
   error TEXT,
   sent_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS catalog (
+  id SERIAL PRIMARY KEY,
+  tmdb_id INTEGER NOT NULL,
+  media_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  platforms TEXT[] NOT NULL DEFAULT '{}',
+  genres TEXT[] NOT NULL DEFAULT '{}',
+  language TEXT,
+  runtime INTEGER,
+  episodes INTEGER,
+  seasons INTEGER,
+  s1_episodes INTEGER,
+  overview TEXT,
+  poster_url TEXT,
+  rating REAL,
+  vote_count INTEGER,
+  year TEXT,
+  adult_flag BOOLEAN NOT NULL DEFAULT false,
+  fetched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (tmdb_id, media_type)
+);
+CREATE TABLE IF NOT EXISTS picks (
+  id SERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  filters JSONB NOT NULL DEFAULT '{}',
+  ip_hash TEXT,
+  candidate_count INTEGER,
+  pick_id TEXT,
+  plan_b_id TEXT,
+  relaxed TEXT[] NOT NULL DEFAULT '{}',
+  gemini_model TEXT,
+  latency_ms INTEGER,
+  result JSONB
+);
+CREATE TABLE IF NOT EXISTS pick_cache (
+  key TEXT PRIMARY KEY,
+  response JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS picks_ip_time ON picks (ip_hash, created_at);
+CREATE INDEX IF NOT EXISTS catalog_fetched ON catalog (fetched_at);
 CREATE INDEX IF NOT EXISTS sends_trigger_week ON sends (trigger, iso_week);
 CREATE INDEX IF NOT EXISTS verdicts_digest ON verdicts (digest_id);
 `;

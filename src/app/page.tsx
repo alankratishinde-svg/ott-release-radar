@@ -9,7 +9,8 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ platform?: string }> }) {
+  const { platform } = await searchParams;
   let view: DigestView | null = null;
   let error = "";
   let cached = false;
@@ -24,7 +25,7 @@ export default async function Home() {
   if (!view) {
     return (
       <>
-        <Nav />
+        <Nav solid />
         <main className="wrap">
           <h1>We couldn&apos;t build this week&apos;s digest</h1>
           <div className="banner warn">{error}. Reload in a minute. If it keeps failing, check the Neon and API keys.</div>
@@ -43,7 +44,7 @@ export default async function Home() {
       <Nav updated={fetchedAt} />
       {view.windowDays > 7 && <div className="notice">Demo window: showing the last {view.windowDays} days because this week was quiet.</div>}
       {!view.storage && <div className="notice warn">Storage is unavailable, so this digest was generated live and not saved.</div>}
-      <Browse watch={watch} dare={view.dare} skip={skip} unjudged={unjudged} />
+      <Browse watch={watch} dare={view.dare} skip={skip} unjudged={unjudged} initialPlatform={platform ?? "all"} />
       <main className="below">
         <TimeBudget picks={[...watch, ...(view.dare ? [view.dare] : [])]} />
       </main>

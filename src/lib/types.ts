@@ -17,6 +17,7 @@ export interface Title {
   releaseDate: string; // YYYY-MM-DD
   source: "watchmode" | "tmdb";
   unverified?: boolean;
+  tmdbPlatforms?: Platform[]; // platforms that came from TMDB discover, not Watchmode
 }
 
 export interface Prefs {
@@ -44,6 +45,7 @@ export interface Entry {
   releaseDate: string;
   isDare: boolean;
   isPick: boolean;
+  tmdbPlatforms?: string[];
 }
 
 export interface DigestView {

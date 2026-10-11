@@ -22,6 +22,24 @@ Steps 1-8 are in flow order. Step 8 is Naman deciding what to watch. Also render
 | **7 Neon Postgres** (storage) | Reads at the filter step; writes at fetch, Gemini and send | Releases, digests, verdicts, sends written; profile read | `preferences`, `releases`, `digests`, `verdicts`, `sends` | Upsert on (source id, platform); 6h cache; per-week cron idempotency; 60s manual rate limit | None | `/` and `/history` read from here |
 | **8 Naman** (human) | Friday evening notification | The Telegram digest or the web page | His mood and free time | Reads pick, lineup, dare, graveyard, time budget | None | Decides what to watch |
 
+## Picker flow
+
+`/pick` ("Ugh, Fine. Watch This.") picks one title from the whole India catalogue for the mood you are in right now. Steps 1-7 are in flow order; also rendered at `/map`.
+
+| Actor | Trigger | Input | Context | Processing | AI | Output |
+|---|---|---|---|---|---|---|
+| **1 User** | Taps mood and filter chips, presses the button | Moods, optional free text (300 chars), genre, language, format, platform, time, company, hidden gems, freshness, exclude list | Their mood right now | Browser POSTs to `/api/pick` | None | JSON request |
+| **2 `/api/pick`** | POST | Request body | IP hash; identical request in the last 10 minutes | Validate and clamp every field; 8 picks per minute per IP hash; serve cached answer for identical filters + mood | None | Candidate search or cached result |
+| **3 Neon cache** | First lookup and every write-back | Platform, language, format | `catalog` (24h TTL), `pick_cache` (10 min), `picks` (log, rate limit) | Hard filters in code: platform, language, format, time, company, exclude, hidden gems. Genre only ranks. Under 15 candidates triggers a live fetch | None | Candidates or a TMDB request |
+| **4 TMDB** | Fewer than 15 cached candidates | `discover` with `watch_region=IN`, provider ids, language, genre steering, vote floor, two pages | Provider ids for the 3 platforms | Details for the top ~30, upsert into `catalog`. If nothing matches, relax genre, then time, then freshness. Platform, language and format are never relaxed | None | Ranked top 25 + what was relaxed |
+| **5 Gemini Flash** | One call per uncached pick | 25 candidates, mood, filters (free text passed as quoted data) | Overviews only | Structured JSON validated against candidate ids; one retry, then top-ranked candidate labelled "AI unavailable" | **Picks one title + Plan B**, sassy reason, mood-match % | Pick, Plan B, reasons |
+| **6 Result card** | Response arrives | Pick, Plan B, relaxed filters | Row in `picks` | "Tonight's verdict" ticket, banner if anything was relaxed, Plan B card | None | What to watch |
+| **7 User** | Reads the card | The verdict | Does it feel right | **Pick again** (exclude list grows), **Send to Telegram** (shares the 60s limit), or goes and watches | None | A decision |
+
+**Why the picker searches the full India catalogue, not just this week's releases.** The digest answers "what is new?". The picker answers "what should I watch tonight?", and on a bad Friday the best answer is a title that landed two years ago. A 21-day window would leave a few dozen titles and make most filter combinations (Tamil series on Prime, a family-safe comedy, hidden gems) empty. So the picker searches everything streaming in India on the three platforms and caches it in Neon (`catalog`, 24h TTL). "Just landed, last 21 days" under More options switches it back to the digest's `releases` window.
+
+Picker notes: Language "Any" means Hindi, English or Tamil. Series time budget uses first-season length. "Family" excludes adult-rated titles (TMDB adult flag or an A / R / NC-17 / TV-MA / 16+ certificate) and horror. Free text is length-limited, stripped of control characters, and sent to Gemini only as quoted data.
+
 ## The data-source trap
 
 IMDb and TMDB release dates are global (theatrical or first-air). They say nothing about when a title reached an Indian OTT catalogue, and "trending" lists say nothing about what is new. This build avoids both:
@@ -73,4 +91,4 @@ npm run dev
 
 **Cron:** `vercel.json` schedules `GET /api/digest` at `30 12 * * 5` (UTC, which is Friday 6:00pm IST). Vercel adds `Authorization: Bearer $CRON_SECRET` automatically; the route returns 401 without it, and skips the send if a cron digest was already sent this ISO week.
 
-Routes: `/` latest digest from Neon, `/history`, `/map`, `/api/preview` (JSON, sends nothing), `/api/digest` (cron), `/api/send-now` (manual).
+Routes: `/` latest digest from Neon (with `?platform=` tabs), `/pick` the picker, `/api/pick`, `/history`, `/map`, `/api/preview` (JSON, sends nothing), `/api/digest` (cron), `/api/send-now` (manual).

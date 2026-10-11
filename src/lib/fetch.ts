@@ -5,7 +5,7 @@ const WM = "https://api.watchmode.com/v1";
 const TMDB = "https://api.themoviedb.org/3";
 
 // TMDB watch-provider ids (verified against /watch/providers?watch_region=IN)
-const TMDB_PROVIDERS: Record<Platform, number[]> = {
+export const TMDB_PROVIDERS: Record<Platform, number[]> = {
   Netflix: [8],
   "Prime Video": [119, 2100],
   JioHotstar: [2336, 122],
@@ -27,14 +27,14 @@ async function getJson(url: string): Promise<any> {
   if (!r.ok) throw new Error(`${new URL(url).host} ${r.status}`);
   return r.json();
 }
-const tmdb = (path: string, params: Record<string, string | number> = {}) => {
+export const tmdb = (path: string, params: Record<string, string | number> = {}) => {
   const u = new URL(TMDB + path);
   u.searchParams.set("api_key", process.env.TMDB_API_KEY!);
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, String(v));
   return getJson(u.toString());
 };
 
-async function pool<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+export async function pool<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
   let i = 0;
   await Promise.all(
@@ -111,8 +111,13 @@ async function details(type: "movie" | "tv", id: number, season?: number | null)
 
 function merge(map: Map<string, Title>, t: Title) {
   const ex = map.get(t.key);
-  if (!ex) return void map.set(t.key, t);
-  for (const p of t.platforms) if (!ex.platforms.includes(p)) ex.platforms.push(p);
+  if (!ex) return void map.set(t.key, { ...t, tmdbPlatforms: t.source === "tmdb" ? [...t.platforms] : [] });
+  for (const p of t.platforms) {
+    if (!ex.platforms.includes(p)) {
+      ex.platforms.push(p);
+      if (t.source === "tmdb") (ex.tmdbPlatforms ??= []).push(p);
+    }
+  }
   if (t.releaseDate > ex.releaseDate) ex.releaseDate = t.releaseDate;
 }
 

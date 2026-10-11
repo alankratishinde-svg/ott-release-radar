@@ -15,7 +15,7 @@ export default async function History() {
   );
   return (
     <>
-    <Nav />
+    <Nav solid />
     <main className="wrap">
       <h1>History</h1>
       <p className="sub">Every digest ever generated, read from Neon.</p>

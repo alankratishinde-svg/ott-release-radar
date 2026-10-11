@@ -33,6 +33,7 @@ function toEntry(t: Title, v?: { synopsis_line_1: string; synopsis_line_2: strin
     reason: v ? v.reason : "",
     mood: v ? v.mood_tag : "",
     poster: t.poster,
+    tmdbPlatforms: t.tmdbPlatforms ?? [],
     backdrop: t.backdrop,
     year: t.year,
     releaseDate: t.releaseDate,
@@ -41,7 +42,7 @@ function toEntry(t: Title, v?: { synopsis_line_1: string; synopsis_line_2: strin
   };
 }
 
-async function upsertReleases(titles: Title[]): Promise<Map<string, number>> {
+export async function upsertReleases(titles: Title[]): Promise<Map<string, number>> {
   const ids = new Map<string, number>();
   const jobs = titles.flatMap((t) => t.platforms.map((p) => ({ t, p })));
   let i = 0;
