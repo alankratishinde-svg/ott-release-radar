@@ -1,6 +1,6 @@
 :root {
   --bg: #14161b; --panel: #1d2027; --panel2: #252932; --line: #2f3440; --text: #f2f2f2; --dim: #a9aeb9;
-  --red: #e5303a; --watch: #46d369; --skip: #f2706a; --dare: #b88cff; --gold: #f5c518; --amber: #ffcf6b;
+  --red: #e5303a; --red-text: #ff6a72; --watch: #46d369; --skip: #f2706a; --dare: #b88cff; --gold: #f5c518; --amber: #ffcf6b;
   --pad: clamp(16px, 4vw, 56px);
 }
 * { box-sizing: border-box; }
@@ -16,7 +16,7 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; backgroun
 /* top bar */
 .top { position: fixed; inset: 0 0 auto 0; z-index: 30; display: flex; align-items: center; gap: 32px; padding: 16px var(--pad); background: linear-gradient(#0b0c0fe8 0%, #0b0c0fb8 60%, #0b0c0f00 100%); }
 .top.solid { background: #14161bf5; border-bottom: 1px solid var(--line); }
-.logo { font-family: var(--display), Impact, sans-serif; font-size: 30px; letter-spacing: .06em; color: var(--red); line-height: 1; white-space: nowrap; text-transform: uppercase; }
+.logo { font-family: var(--display), Impact, sans-serif; font-size: 30px; letter-spacing: .06em; color: var(--red-text); line-height: 1; white-space: nowrap; text-transform: uppercase; }
 .top nav { display: flex; gap: 22px; font-size: 14.5px; }
 .top nav a { color: #e8e8e8; white-space: nowrap; } .top nav a:hover { color: var(--dim); }
 
@@ -165,7 +165,7 @@ h2.sec { font-size: 24px; font-weight: 700; margin: 0 0 14px; display: flex; fle
 /* footer */
 .foot { display: grid; grid-template-columns: 1.2fr 1.6fr 1fr; gap: 28px; margin-top: 56px; padding: 36px var(--pad) 48px; background: #101216; color: var(--dim); font-size: 13.5px; }
 .foot p { margin: 0 0 8px; max-width: 52ch; }
-.flogo { font-family: var(--display), Impact, sans-serif; font-size: 24px; letter-spacing: .06em; color: var(--red); text-transform: uppercase; }
+.flogo { font-family: var(--display), Impact, sans-serif; font-size: 24px; letter-spacing: .06em; color: var(--red-text); text-transform: uppercase; }
 .flinks { display: flex; flex-direction: column; gap: 8px; } .flinks a:hover { color: #fff; text-decoration: underline; }
 
 /* hits */

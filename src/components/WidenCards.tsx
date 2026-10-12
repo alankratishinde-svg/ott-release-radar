@@ -48,7 +48,7 @@ export default function WidenCards<T>({ items, idOf, perRow, rowHeight, head, su
                 onFocus={(e) => { if ((e.target as HTMLElement).matches(":focus-visible")) setFocus(id); }}
                 onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocus((f) => (f === id ? null : f)); }}
               >
-                <button type="button" className="whead" aria-expanded={active} aria-controls={`case-${id}`} aria-label={`${label(t)}: ${active ? "hide" : "show"} details`} onClick={() => { if (pinned === id) { setPinned(null); setFocus(null); } else setPinned(id); }}>
+                <button type="button" className="whead" aria-expanded={active} aria-controls={`case-${id}`} onClick={() => { if (pinned === id) { setPinned(null); setFocus(null); } else setPinned(id); }}>
                   {head(t)}
                 </button>
                 <div className="wbody">
