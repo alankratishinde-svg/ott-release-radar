@@ -276,3 +276,4 @@ button.ghost { font: 700 15px var(--sans), sans-serif; background: #fff; color: 
 .csyn { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .case .watchany { margin: 2px 0 6px; }
 .csyn.full { -webkit-line-clamp: 6; }
+.kbimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #0d0e11; }

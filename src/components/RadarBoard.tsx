@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { preload } from "react-dom";
 import { length } from "@/lib/format";
 import type { Entry } from "@/lib/types";
 import Poster from "./Poster";
@@ -44,7 +45,7 @@ function FilmStrip({ items, onJump }: { items: Entry[]; onJump: (e: Entry) => vo
   const seq = Array.from({ length: reps }, () => items).flat();
   const frame = (e: Entry, k: string, dup: boolean) => (
     <button key={k} type="button" className="frame" onClick={() => onJump(e)} tabIndex={dup ? -1 : 0} aria-hidden={dup} aria-label={dup ? undefined : `Jump to ${e.title}`}>
-      {e.poster ? <img src={e.poster} alt={dup ? "" : e.title} width={92} height={138} loading="lazy" decoding="async" /> : <span className="frame-empty">{e.title}</span>}
+      {e.poster ? <img src={e.poster.replace("/w342/", "/w154/")} alt={dup ? "" : e.title} width={92} height={138} loading="lazy" decoding="async" /> : <span className="frame-empty">{e.title}</span>}
     </button>
   );
   return (
@@ -64,11 +65,15 @@ function Hero({ pick, strip, onJump, today }: { pick: Entry | null; strip: Entry
     return () => document.removeEventListener("visibilitychange", f);
   }, []);
   const bg = pick?.backdrop ?? pick?.poster ?? null;
+  // Responsive hero image: phones get the 780px file (about 60KB) instead of the 1280px one (150KB). Preloaded at high priority.
+  const heroSet = pick?.backdrop ? ["w300", "w780", "w1280"].map((w) => `${pick.backdrop!.replace("/w1280/", `/${w}/`)} ${w.slice(1)}w`).join(", ") : undefined;
+  const heroSrc = pick?.backdrop ? pick.backdrop.replace("/w1280/", "/w780/") : bg;
+  if (heroSrc) preload(heroSrc, { as: "image", imageSrcSet: heroSet, imageSizes: heroSet ? "100vw" : undefined, fetchPriority: "high" });
   return (
     <section className="hero2" aria-label="Tonight's pick">
       <div className="kbwrap" aria-hidden="true">
         <div className={`kb ${pick?.backdrop ? "" : "posteronly"}`}>
-          {bg && <Poster src={bg} alt="" sizes="100vw" priority />}
+          {heroSrc && <img className="kbimg" src={heroSrc} srcSet={heroSet} sizes={heroSet ? "100vw" : undefined} alt="" fetchPriority="high" decoding="async" width={1280} height={720} />}
         </div>
       </div>
       <div className="scrim" aria-hidden="true" />

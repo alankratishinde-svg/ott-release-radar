@@ -20,7 +20,7 @@ const CURTAIN = `try{if(!sessionStorage.getItem('curtain')){document.documentEle
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${display.variable}`} suppressHydrationWarning>
-      <head><script dangerouslySetInnerHTML={{ __html: CURTAIN }} /></head>
+      <head><link rel="preconnect" href="https://image.tmdb.org" /><script dangerouslySetInnerHTML={{ __html: CURTAIN }} /></head>
       <body>{children}</body>
     </html>
   );
