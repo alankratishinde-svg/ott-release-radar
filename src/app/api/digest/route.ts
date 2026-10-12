@@ -1,6 +1,6 @@
 import { isCron } from "@/lib/auth";
 import { q, safe } from "@/lib/db";
-import { getOrCreateDigest } from "@/lib/pipeline";
+import { assertSevenDay, getOrCreateDigest } from "@/lib/pipeline";
 import { sendText } from "@/lib/telegram";
 import { isoWeek } from "@/lib/week";
 
@@ -17,6 +17,7 @@ async function handle(req: Request) {
 
   try {
     const { view, cached } = await getOrCreateDigest();
+    assertSevenDay(view); // Telegram is strictly the 7-day radar. Fails closed.
     const sent = await sendText(view.text, "cron", view.id);
     return Response.json({ skipped: false, week, cached, digestId: view.id, counts: view.counts, windowDays: view.windowDays, sent }, { status: sent.ok ? 200 : 502 });
   } catch (e) {

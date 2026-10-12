@@ -1,166 +1,75 @@
 import Nav from "@/components/Nav";
+import Swimlane, { type Actor } from "@/components/Swimlane";
 
-const S = ({ n }: { n: number }) => <span className="step">{n}</span>;
+export const metadata = { title: "Components map", description: "How OTT Release Radar works: the Radar, All Time Hits and Picker flows as swimlanes, with the storage layer underneath." };
 
-export const metadata = { title: "Components map · OTT Release Radar" };
+const NEON: Actor = { name: "Neon Postgres", role: "remembers everything", icon: "🗄️", tone: "t-neon", dashed: true };
+const A = {
+  cron: { name: "Scheduler", role: "wakes the app", icon: "⏰", tone: "t-cron" },
+  app: { name: "App route", role: "orchestrates", icon: "⚙️", tone: "t-app" },
+  api: { name: "Releases API", role: "supplies titles", icon: "📡", tone: "t-api" },
+  tmdb: { name: "TMDB", role: "supplies the catalogue", icon: "🎞️", tone: "t-api" },
+  gem: { name: "Gemini Flash", role: "judges taste", icon: "✨", tone: "t-ai" },
+  tg: { name: "Telegram Bot API", role: "delivers", icon: "✈️", tone: "t-tg" },
+  me: { name: "Naman", role: "decides", icon: "🍿", tone: "t-human" },
+  user: { name: "User", role: "asks", icon: "🙋", tone: "t-human" },
+  visitor: { name: "Visitor", role: "browses", icon: "👀", tone: "t-human" },
+} satisfies Record<string, Actor>;
 
 export default function MapPage() {
   return (
     <>
-    <Nav solid />
-    <main className="wrap" style={{ maxWidth: 1180 }}>
-      <h1>Components map</h1>
-      <p className="sub">One row per actor. Steps 1–8 run in flow order; step 8 is Naman deciding what to watch.</p>
-      <div className="scroll">
-        <table>
-          <thead>
-            <tr><th>Actor</th><th>Trigger</th><th>Input</th><th>Context</th><th>Processing</th><th>AI</th><th>Output</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><S n={1} />Scheduler (Vercel Cron)</td>
-              <td>Fri 12:30 UTC = 6:00pm IST (<code>30 12 * * 5</code>)</td>
-              <td>Time</td>
-              <td><code>CRON_SECRET</code></td>
-              <td>GET <code>/api/digest</code> with <code>Authorization: Bearer</code></td>
-              <td>None</td>
-              <td>HTTP call into the app route</td>
-            </tr>
-            <tr>
-              <td><S n={2} /><S n={4} />App route (Next.js on Vercel)</td>
-              <td>Cron call, or the manual “Send to Telegram now” button (<code>/api/send-now</code>, 1 per 60s)</td>
-              <td>Bearer secret; cache + idempotency check in Neon</td>
-              <td>Profile read from Neon; digest &lt;6h old is served from Neon without any API call</td>
-              <td>Skip if a cron digest was already sent this ISO week → fetch → <b>filter</b> (language hard, genre soft, dedupe) → batch → format → split to ≤4096 chars</td>
-              <td>None itself; orchestrates Gemini</td>
-              <td>Digest row + verdict rows; Telegram text; page JSON</td>
-            </tr>
-            <tr>
-              <td><S n={3} />Releases API (Watchmode / TMDB)</td>
-              <td>Pipeline fetch step</td>
-              <td>Region IN, last 7 days (21 if fewer than 5 titles survive the filter), source ids discovered from <code>/sources</code></td>
-              <td>Watchmode release dates; TMDB for genres, language, runtime, episodes, overview, poster and India provider check</td>
-              <td>Keep Netflix / Prime Video / JioHotstar; drop titles TMDB says are not on that platform in India; fall back to TMDB discover if Watchmode fails</td>
-              <td>None</td>
-              <td>Raw titles → upserted into <code>releases</code></td>
-            </tr>
-            <tr>
-              <td><S n={5} />Gemini Flash</td>
-              <td>One batched call after the filter</td>
-              <td>All filtered titles + wildcard candidates for the dare</td>
-              <td>Naman’s profile and taste notes (from Neon); only the provided overviews</td>
-              <td>Structured JSON against a response schema; one retry if malformed or too generous</td>
-              <td><b>Judges taste</b>: two-line synopsis, WATCH/SKIP, 0–100 score, reason, mood tag, one dare</td>
-              <td>Verdicts → <code>verdicts</code></td>
-            </tr>
-            <tr>
-              <td><S n={6} />Telegram Bot API</td>
-              <td>Digest ready</td>
-              <td>Formatted HTML text (“The Friday Projectionist”)</td>
-              <td>Bot token + chat id</td>
-              <td><code>sendMessage</code> with <code>parse_mode=HTML</code>, split to fit 4096</td>
-              <td>None</td>
-              <td>Message ids → <code>sends</code></td>
-            </tr>
-            <tr>
-              <td><S n={7} />Neon Postgres (storage)</td>
-              <td>Reads at the filter step; writes at fetch, Gemini and send</td>
-              <td>Releases, digests, verdicts and sends written; profile read</td>
-              <td><code>preferences</code>, <code>releases</code>, <code>digests</code>, <code>verdicts</code>, <code>sends</code></td>
-              <td>Upsert on (source id, platform); 6h cache; per-week cron idempotency; 60s manual rate limit</td>
-              <td>None</td>
-              <td>Page <code>/</code> and <code>/history</code> read from here</td>
-            </tr>
-            <tr>
-              <td><S n={8} />Naman (the human)</td>
-              <td>Friday evening notification</td>
-              <td>The Telegram digest (or the web page)</td>
-              <td>His own mood and free time</td>
-              <td>Reads the pick, lineup, dare, graveyard and time budget</td>
-              <td>None</td>
-              <td>Decides what to watch this weekend</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <h2 style={{ marginTop: 56, fontSize: 28 }}>Picker flow</h2>
-      <p className="sub">The &ldquo;Ugh, fine. Pick for me.&rdquo; page. It searches the full India catalogue, not just this week&apos;s releases.</p>
-      <div className="scroll">
-        <table>
-          <thead>
-            <tr><th>Actor</th><th>Trigger</th><th>Input</th><th>Context</th><th>Processing</th><th>AI</th><th>Output</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><S n={1} />User</td>
-              <td>Opens <code>/pick</code>, taps mood and filter chips, presses the button</td>
-              <td>Moods, optional free text (300 chars), genre, language, format, platform, time, company, hidden gems, freshness, exclude list</td>
-              <td>Their mood right now</td>
-              <td>Browser POSTs to <code>/api/pick</code></td>
-              <td>None</td>
-              <td>JSON request</td>
-            </tr>
-            <tr>
-              <td><S n={2} /><code>/api/pick</code> route</td>
-              <td>POST from the page</td>
-              <td>Request body</td>
-              <td>IP hash; identical request within 10 minutes</td>
-              <td>Validate and clamp every field; allow 8 picks per minute per IP hash; serve a cached answer when the same filters and mood repeat</td>
-              <td>None</td>
-              <td>Candidate search, or a cached result</td>
-            </tr>
-            <tr>
-              <td><S n={3} />Neon cache</td>
-              <td>First lookup, and every write-back</td>
-              <td>Platform, language, format</td>
-              <td><code>catalog</code> (24h TTL), <code>pick_cache</code> (10 min), <code>picks</code> (log and rate limit)</td>
-              <td>Hard filters in code: platform, language, format, time, company, exclude, hidden gems. Genre is only ranking. Fewer than 15 candidates triggers a live fetch</td>
-              <td>None</td>
-              <td>Candidates, or a request to TMDB</td>
-            </tr>
-            <tr>
-              <td><S n={4} />TMDB</td>
-              <td>Fewer than 15 cached candidates</td>
-              <td><code>discover</code> with <code>watch_region=IN</code>, provider ids, language, genre steering, vote floor, two pages</td>
-              <td>Provider ids for Netflix, Prime Video, JioHotstar</td>
-              <td>Details for the top ~30: runtime, episodes, seasons, rating, certificate. Upsert into <code>catalog</code>. If nothing matches, relax genre, then time, then freshness. Platform, language and format are never relaxed</td>
-              <td>None</td>
-              <td>Ranked top 25 candidates, plus a list of what was relaxed</td>
-            </tr>
-            <tr>
-              <td><S n={5} />Gemini Flash</td>
-              <td>One call per uncached pick</td>
-              <td>The 25 candidates, mood and filters. Free text is passed as quoted data, never as instructions</td>
-              <td>Overviews only</td>
-              <td>Structured JSON, validated against the candidate ids; one retry, then the top-ranked candidate labelled &ldquo;AI unavailable&rdquo;</td>
-              <td><b>Picks one title and a Plan B</b>, writes the sassy reason, scores the mood match</td>
-              <td>Pick, Plan B, reasons, mood-match %</td>
-            </tr>
-            <tr>
-              <td><S n={6} />Result card</td>
-              <td>Response arrives</td>
-              <td>Pick, Plan B, any relaxed filters</td>
-              <td>Row stored in <code>picks</code></td>
-              <td>Shows the ticket with a &ldquo;Tonight&apos;s verdict&rdquo; stamp, a banner when filters were relaxed, and a Plan B card</td>
-              <td>None</td>
-              <td>What to watch, on screen</td>
-            </tr>
-            <tr>
-              <td><S n={7} />User (decides)</td>
-              <td>Reads the card</td>
-              <td>The verdict</td>
-              <td>Whether it feels right</td>
-              <td>Presses <b>Pick again</b> (exclude list grows, nothing repeats), <b>Send to Telegram</b> (shares the 60s limit with the digest), or goes and watches</td>
-              <td>None</td>
-              <td>A decision</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p className="sub" style={{ marginTop: 18 }}>
-        Neon row detail: the <b>profile is read at step 4 (filter)</b>; writes land at step 3 (<code>releases</code>), step 5 (<code>digests</code> + <code>verdicts</code>) and step 6 (<code>sends</code>).
-      </p>
-    </main>
+      <Nav solid />
+      <main className="wrap wide">
+        <h1>Components map</h1>
+        <p className="sub">One swimlane per flow. Every title belongs to exactly one dashboard, decided by one shared function: <code>classifyWindow</code>, which sends a title to the Radar if it was released in the last 7 days and to All Time Hits if not.</p>
+
+        <Swimlane
+          title="Radar flow (7 days only)"
+          blurb="Friday 6:00pm IST. Nothing older than 7 days can enter, and Telegram refuses to send anything that is not a 7-day digest."
+          actors={[A.cron, A.app, A.api, A.gem, A.tg, A.me]}
+          steps={[
+            { n: 1, actor: 0, col: 0, text: "Friday 6:00pm IST (cron 30 12 * * 5)" },
+            { n: 2, actor: 1, col: 1, text: "Bearer secret checked. Already sent this ISO week? Stop. Neon lock stops double runs" },
+            { n: 3, actor: 2, col: 2, text: "Watchmode (cached 6h) and TMDB discover, merged and de-duplicated, last 7 days" },
+            { n: 4, actor: 2, col: 3, text: "classifyWindow keeps radar titles; language hard filter, genre soft filter" },
+            { n: 5, actor: 3, col: 4, text: "One batch: verdict, score, reason, long reason. Vague SKIP reasons retried" },
+            { n: 6, actor: 4, col: 5, text: "7-day digest sent, split to 4096 chars. assertSevenDay fails closed" },
+            { n: 7, actor: 5, col: 5, text: "Naman decides what to watch" },
+          ]}
+          neon={{ actor: NEON, chips: [{ col: 1, text: "Lock + 6h guard: one digest per window" }, { col: 2, text: "Reads the profile at step 4" }, { col: 5, text: "Writes releases (3), digests and verdicts (5), sends (6)" }] }}
+        />
+
+        <Swimlane
+          title="All Time Hits flow"
+          blurb="Older than a week, still worth your Friday. One Gemini call per refresh, never per card."
+          actors={[A.visitor, A.app, A.tmdb, A.gem, A.me]}
+          steps={[
+            { n: 1, actor: 0, col: 0, text: "Opens /hits" },
+            { n: 2, actor: 1, col: 1, text: "Serves cached shelves. Catalogue older than 24h refreshes in the background" },
+            { n: 3, actor: 2, col: 2, text: "Discover: India, Netflix / Prime / JioHotstar, hi / en / ta, 1000+ votes, 7.2+ rating" },
+            { n: 4, actor: 2, col: 3, text: "classifyWindow keeps hits only; radar titles excluded; details for the top ~110" },
+            { n: 5, actor: 3, col: 4, text: "ONE batched call: a one-line reason and a match score per title" },
+            { n: 6, actor: 4, col: 5, text: "Shelves with unique titles. Hover, tap or focus a card; Use in picker" },
+          ]}
+          neon={{ actor: NEON, chips: [{ col: 1, text: "Reads catalog (24h TTL)" }, { col: 2, text: "Writes catalog rows" }, { col: 5, text: "Reasons and scores stored with each row" }] }}
+        />
+
+        <Swimlane
+          title="Picker flow"
+          blurb="The mood picker searches the full India catalogue, not just this week's releases. Free text is sent to Gemini only as quoted data."
+          actors={[A.user, A.app, A.tmdb, A.gem, A.me]}
+          steps={[
+            { n: 1, actor: 0, col: 0, text: "Taps mood and filter chips, presses Pick for me" },
+            { n: 2, actor: 1, col: 1, text: "POST /api/pick: fields clamped, 8 per minute per IP, identical request cached 10 min" },
+            { n: 3, actor: 2, col: 2, text: "Fewer than 15 cached candidates: discover the India catalogue live" },
+            { n: 4, actor: 2, col: 3, text: "Hard filters in code, genre only ranks. Nothing left? Relax genre, time, then freshness (never platform, language or format)" },
+            { n: 5, actor: 3, col: 4, text: "Picks one title and a Plan B, writes the reason, scores the mood match" },
+            { n: 6, actor: 4, col: 5, text: "Verdict card. Pick again, send to Telegram, or go and watch" },
+          ]}
+          neon={{ actor: NEON, chips: [{ col: 1, text: "picks log and rate limit; pick_cache 10 min" }, { col: 2, text: "catalog 24h TTL" }, { col: 5, text: "Writes the pick and the result" }] }}
+        />
+      </main>
     </>
   );
 }

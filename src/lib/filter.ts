@@ -3,7 +3,7 @@ import type { Prefs, Title } from "./types";
 const LANG_CODES: Record<string, string> = { hindi: "hi", english: "en", tamil: "ta", telugu: "te", malayalam: "ml", kannada: "kn", bengali: "bn", marathi: "mr" };
 const ADJACENT = ["crime", "mystery"];
 
-function genreSet(prefs: Prefs): Set<string> {
+export function genreSet(prefs: Prefs): Set<string> {
   const s = new Set<string>(ADJACENT);
   for (const g of prefs.genres.map((x) => x.toLowerCase())) {
     if (g.includes("thriller")) s.add("thriller");

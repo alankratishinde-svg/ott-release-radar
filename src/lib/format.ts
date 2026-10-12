@@ -1,5 +1,6 @@
 import type { DigestView, Entry } from "./types";
 import { fmtDate, fmtTimeIST, weekday } from "./week";
+import { agoText } from "./window";
 
 export const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -27,10 +28,10 @@ function syn(e: Entry) {
   return `<i>${esc(e.synopsis[0])}</i>\n<i>${esc(e.synopsis[1])}</i>`;
 }
 
-function card(e: Entry, icon: string, verdictLine: string) {
+function card(e: Entry, icon: string, verdictLine: string, now = new Date()) {
   return [
     `${icon} <b>${esc(e.title)}</b> — ${esc(e.platforms.join(" + "))}`,
-    `${esc(genres(e))} · ${esc(length(e))}`,
+    `${esc(genres(e))} · ${esc(length(e))} · ${esc(e.releaseDate ? agoText(e.releaseDate, !!e.dateApprox, now) : "")}`,
     syn(e),
     verdictLine,
   ].join("\n");
@@ -76,7 +77,6 @@ export function buildBlocks(v: Omit<DigestView, "text" | "id" | "storage">, now 
       `<b>${weekday(now)}, ${fmtDate(now).toUpperCase()}</b>`,
       `<code>${v.counts.fetched} new in India · ${worth} worth your time</code>`,
       `<i>The Friday Projectionist presents tonight's programme.</i>`,
-      ...(v.windowDays > 7 ? [`<i>House lights stayed on: this week was quiet, so I looked back ${v.windowDays} days.</i>`] : []),
     ].join("\n"),
   );
 

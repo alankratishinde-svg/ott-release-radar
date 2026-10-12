@@ -33,13 +33,13 @@ function Chips({ label, options, value, onChange, multi }: { label: string; opti
   );
 }
 
-export default function Picker() {
+export default function Picker({ initial }: { initial?: { genres?: string[]; platforms?: string[]; format?: string; title?: string } }) {
   const [moods, setMoods] = useState<string[]>([]);
   const [moodText, setMoodText] = useState("");
-  const [genres, setGenres] = useState<string[]>([]);
+  const [genres, setGenres] = useState<string[]>(initial?.genres ?? []);
   const [languages, setLanguages] = useState<string[]>([]);
-  const [format, setFormat] = useState("either");
-  const [platforms, setPlatforms] = useState<string[]>([]);
+  const [format, setFormat] = useState(initial?.format ?? "either");
+  const [platforms, setPlatforms] = useState<string[]>(initial?.platforms ?? []);
   const [timeBudget, setTimeBudget] = useState("any");
   const [company, setCompany] = useState("any");
   const [hiddenGems, setHiddenGems] = useState(false);
@@ -94,6 +94,7 @@ export default function Picker() {
 
   return (
     <>
+      {initial?.title && <p className="prefill">Prefilled from <b>{initial.title}</b>: same genre, platform and format. Add a mood and pick.</p>}
       <div className="mood" role="group" aria-label="How do you feel">
         {MOODS.map((m) => <button type="button" key={m} className="chip" aria-pressed={moods.includes(m)} onClick={() => setMoods(toggle(moods, m))}>{m}</button>)}
       </div>
@@ -117,7 +118,7 @@ export default function Picker() {
             <span>Hidden gems</span>
             <div className="chips"><button type="button" className="chip" aria-pressed={hiddenGems} onClick={() => setHiddenGems(!hiddenGems)}>{hiddenGems ? "Hidden gems only" : "Off"}</button></div>
           </div>
-          <Chips label="Freshness" options={[["all", "Anything streaming in India now"], ["fresh", "Just landed, last 21 days"]] as const} value={freshOnly ? "fresh" : "all"} onChange={(v: string) => setFreshOnly(v === "fresh")} />
+          <Chips label="Freshness" options={[["all", "Anything streaming in India now"], ["fresh", "Just landed, last 7 days"]] as const} value={freshOnly ? "fresh" : "all"} onChange={(v: string) => setFreshOnly(v === "fresh")} />
         </div>
       </details>
 

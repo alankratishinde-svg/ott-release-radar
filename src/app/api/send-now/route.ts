@@ -1,5 +1,5 @@
 import { q, safe } from "@/lib/db";
-import { getOrCreateDigest } from "@/lib/pipeline";
+import { assertSevenDay, getOrCreateDigest } from "@/lib/pipeline";
 import { pickToTelegram } from "@/lib/picker";
 import { sendText } from "@/lib/telegram";
 
@@ -24,6 +24,7 @@ export async function POST(req: Request) {
   }
   try {
     const { view, cached } = await getOrCreateDigest();
+    assertSevenDay(view); // Telegram is strictly the 7-day radar. Fails closed.
     const sent = await sendText(view.text, "manual", view.id);
     return Response.json({ ...sent, cached, digestId: view.id }, { status: sent.ok ? 200 : 502 });
   } catch (e) {

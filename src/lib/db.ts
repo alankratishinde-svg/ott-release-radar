@@ -132,8 +132,54 @@ CREATE TABLE IF NOT EXISTS pick_cache (
   response JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE verdicts ADD COLUMN IF NOT EXISTS reason_long TEXT;
+ALTER TABLE verdicts ADD COLUMN IF NOT EXISTS missed_signals JSONB;
+ALTER TABLE releases ADD COLUMN IF NOT EXISTS backdrop_url TEXT;
+ALTER TABLE catalog ADD COLUMN IF NOT EXISTS release_date DATE;
+ALTER TABLE catalog ADD COLUMN IF NOT EXISTS backdrop_url TEXT;
+ALTER TABLE catalog ADD COLUMN IF NOT EXISTS hit_reason TEXT;
+ALTER TABLE catalog ADD COLUMN IF NOT EXISTS hit_reason_long TEXT;
+ALTER TABLE catalog ADD COLUMN IF NOT EXISTS hit_score INTEGER;
+ALTER TABLE catalog ADD COLUMN IF NOT EXISTS reason_at TIMESTAMPTZ;
+CREATE TABLE IF NOT EXISTS api_cache (
+  key TEXT PRIMARY KEY,
+  payload JSONB NOT NULL,
+  meta JSONB NOT NULL DEFAULT '{}',
+  fetched_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS locks (
+  name TEXT PRIMARY KEY,
+  until TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS digests_created ON digests (created_at);
 CREATE INDEX IF NOT EXISTS picks_ip_time ON picks (ip_hash, created_at);
 CREATE INDEX IF NOT EXISTS catalog_fetched ON catalog (fetched_at);
 CREATE INDEX IF NOT EXISTS sends_trigger_week ON sends (trigger, iso_week);
 CREATE INDEX IF NOT EXISTS verdicts_digest ON verdicts (digest_id);
 `;
+
+/** Cross-request mutex in Neon so two requests never generate the same thing at once. Returns false if held. */
+export async function acquireLock(name: string, seconds = 180): Promise<boolean> {
+  const r = await q(
+    `INSERT INTO locks (name, until) VALUES ($1, now() + ($2 || ' seconds')::interval)
+     ON CONFLICT (name) DO UPDATE SET until = EXCLUDED.until WHERE locks.until < now() RETURNING name`,
+    [name, String(seconds)],
+  );
+  return r.length > 0;
+}
+export const releaseLock = (name: string) => safe(() => q(`DELETE FROM locks WHERE name=$1`, [name]));
+
+/** JSON cache in Neon. Returns fresh value, or (when fn throws) the stale value flagged as stale. */
+export async function cachedJson<T>(key: string, ttlMs: number, fn: () => Promise<{ payload: T; meta?: Record<string, unknown> }>): Promise<{ payload: T; meta: Record<string, unknown>; stale: boolean; fetchedAt: Date }> {
+  const row = await safe(() => q<{ payload: T; meta: Record<string, unknown>; fetched_at: string }>(`SELECT payload, meta, fetched_at FROM api_cache WHERE key=$1`, [key]));
+  const hit = row?.[0];
+  if (hit && Date.now() - new Date(hit.fetched_at).getTime() < ttlMs) return { payload: hit.payload, meta: hit.meta, stale: false, fetchedAt: new Date(hit.fetched_at) };
+  try {
+    const f = await fn();
+    await safe(() => q(`INSERT INTO api_cache (key, payload, meta, fetched_at) VALUES ($1,$2,$3, now()) ON CONFLICT (key) DO UPDATE SET payload=EXCLUDED.payload, meta=EXCLUDED.meta, fetched_at=now()`, [key, JSON.stringify(f.payload), JSON.stringify(f.meta ?? {})]));
+    return { payload: f.payload, meta: f.meta ?? {}, stale: false, fetchedAt: new Date() };
+  } catch (e) {
+    if (hit) return { payload: hit.payload, meta: hit.meta, stale: true, fetchedAt: new Date(hit.fetched_at) };
+    throw e;
+  }
+}

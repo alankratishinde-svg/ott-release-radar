@@ -1,25 +1,30 @@
-import Browse from "@/components/Browse";
 import Nav from "@/components/Nav";
+import RadarBoard, { type Teaser } from "@/components/RadarBoard";
 import TimeBudget from "@/components/TimeBudget";
 import { safe } from "@/lib/db";
-import { getOrCreateDigest, loadPrefs } from "@/lib/pipeline";
-import { suggestMovies } from "@/lib/suggest";
+import { loadHits } from "@/lib/hits";
+import { getDigestForPage } from "@/lib/pipeline";
+import { splitSections } from "@/lib/sections";
 import type { DigestView } from "@/lib/types";
-import { fmtTimeIST } from "@/lib/week";
+import { fmtTimeIST, ist, ymd } from "@/lib/week";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"; // always the latest digest row from Neon (the same row History lists first)
 export const maxDuration = 120;
+export const metadata = {
+  title: "This week's OTT releases in India",
+  description: "What actually landed on Netflix, Prime Video and JioHotstar in India in the last 7 days, each with a watch-or-skip verdict.",
+};
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ platform?: string }> }) {
   const { platform } = await searchParams;
   let view: DigestView | null = null;
   let error = "";
-  let cached = false;
+  let refreshing = false;
   try {
-    const r = await getOrCreateDigest();
+    const r = await getDigestForPage();
     view = r.view;
-    cached = r.cached;
+    refreshing = r.refreshing;
   } catch (e) {
     error = (e as Error).message;
   }
@@ -36,32 +41,46 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
     );
   }
 
-  const watch = view.entries.filter((e) => e.verdict === "WATCH");
-  const skip = view.entries.filter((e) => e.verdict === "SKIP");
-  const unjudged = view.entries.filter((e) => e.verdict === "UNAVAILABLE");
-  const fetchedAt = fmtTimeIST(new Date(view.createdAt));
-  const prefs = await loadPrefs();
-  const extras = (await safe(() => suggestMovies(view!.entries.concat(view!.dare ? [view!.dare] : []).map((e) => e.title), prefs))) ?? [];
+  const today = ymd(ist());
+  const { watch, pick, lineup, skip, unjudged } = splitSections(view);
+  const worth = watch.length + (view.dare ? 1 : 0);
+  const updated = fmtTimeIST(new Date(view.createdAt));
+
+  // Quiet week: fewer than 3 radar titles. The strip is links only: it is not counted in the stats, the digest or Telegram.
+  let teasers: Teaser[] = [];
+  if (view.counts.filtered < 3) {
+    const h = await safe(loadHits);
+    teasers = (h?.hits ?? []).sort((a, b) => b.score - a.score).slice(0, 4).map((x) => ({ key: x.key, title: x.title, poster: x.poster, year: x.year, platforms: x.platforms, rating: x.rating }));
+  }
 
   return (
     <>
-      <Nav updated={fetchedAt} />
-      {view.windowDays > 7 && <div className="notice">Demo window: showing the last {view.windowDays} days because this week was quiet.</div>}
+      <Nav />
+      <div className="statstrip" role="status">
+        <span><b>{view.counts.fetched}</b> new this week</span>
+        <span className="dot" aria-hidden="true" />
+        <span><b>{worth}</b> worth your time</span>
+        <span className="dot" aria-hidden="true" />
+        <span><b>{view.counts.skip}</b> skipped</span>
+        <span className="upd">Updated {updated}{refreshing ? ", refreshing" : ""}</span>
+      </div>
       {!view.storage && <div className="notice warn">Storage is unavailable, so this digest was generated live and not saved.</div>}
-      <Browse extras={extras} watch={watch} dare={view.dare} skip={skip} unjudged={unjudged} initialPlatform={platform ?? "all"} />
-      <main className="below">
-        <TimeBudget picks={[...watch, ...(view.dare ? [view.dare] : [])]} />
-      </main>
+      <RadarBoard pick={pick} lineup={lineup} dare={view.dare} skip={skip} unjudged={unjudged} today={today} initialPlatform={platform ?? "all"} teasers={teasers}>
+        <main className="band below">
+          <TimeBudget picks={[...watch, ...(view.dare ? [view.dare] : [])]} />
+        </main>
+      </RadarBoard>
       <footer className="foot">
         <div>
           <p className="flogo">OTT Release Radar</p>
-          <p>{view.counts.fetched} new in India, {view.counts.filtered} matched your languages and genres, {view.counts.watch} watch, {view.counts.skip} skip.</p>
+          <p>{view.counts.fetched} new in the last 7 days, {view.counts.filtered} matched your languages and genres, {watch.length} watch, {view.counts.skip} skip.</p>
         </div>
         <div>
           <p>{view.sourceLabel}.</p>
-          <p>{view.model ? `Judged by ${view.model}. ` : ""}{view.storage ? "Saved in Neon" : "Storage unavailable"}, fetched {fetchedAt}{cached ? ", served from the 6-hour cache" : ""}.</p>
+          <p>{view.model ? `Judged by ${view.model}. ` : ""}{view.storage ? "Saved in Neon" : "Storage unavailable"}, fetched {updated}.</p>
         </div>
         <div className="flinks">
+          <Link href="/hits">All Time Hits</Link>
           <Link href="/history">History</Link>
           <Link href="/map">Components map</Link>
           <a href="https://github.com/alankratishinde-svg/ott-release-radar">Source code</a>

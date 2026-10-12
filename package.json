@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:setup": "tsx --env-file=.env.local scripts/db-setup.ts"
+    "db:setup": "tsx --env-file=.env.local scripts/db-setup.ts",
+    "test": "tsx --test tests/*.test.ts",
+    "verify:radar": "tsx --env-file=.env.local scripts/verify-radar.ts",
+    "backfill:skips": "tsx --env-file=.env.local scripts/backfill-skips.ts",
+    "cleanup:digests": "tsx --env-file=.env.local scripts/cleanup-digests.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",

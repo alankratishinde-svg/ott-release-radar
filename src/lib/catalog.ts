@@ -1,5 +1,5 @@
 import { q } from "./db";
-import { pool, tmdb, TMDB_PROVIDERS } from "./fetch";
+import { getProviders, pool, tmdb } from "./fetch";
 import type { Platform } from "./types";
 
 export const ALL_PLATFORMS: Platform[] = ["Netflix", "Prime Video", "JioHotstar"];
@@ -42,6 +42,8 @@ export interface Cand {
   voteCount: number;
   year: string | null;
   adult: boolean;
+  releaseDate: string | null;
+  backdrop: string | null;
 }
 export const candKey = (c: Pick<Cand, "mediaType" | "tmdbId">) => `${c.mediaType}:${c.tmdbId}`;
 
@@ -80,6 +82,8 @@ export async function fetchCand(type: "movie" | "tv", id: number, platforms: Pla
       voteCount: d.vote_count ?? 0,
       year: String(d.release_date ?? d.first_air_date ?? "").slice(0, 4) || null,
       adult: !!d.adult || MATURE.has(cert.trim().toUpperCase()),
+      releaseDate: String(d.release_date ?? d.first_air_date ?? "").slice(0, 10) || null,
+      backdrop: d.backdrop_path ? `https://image.tmdb.org/t/p/w1280${d.backdrop_path}` : null,
     };
   } catch {
     return null;
@@ -88,27 +92,27 @@ export async function fetchCand(type: "movie" | "tv", id: number, platforms: Pla
 
 export async function upsertCatalog(c: Cand) {
   await q(
-    `INSERT INTO catalog (tmdb_id, media_type, title, platforms, genres, language, runtime, episodes, seasons, s1_episodes, overview, poster_url, rating, vote_count, year, adult_flag, fetched_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16, now())
+    `INSERT INTO catalog (tmdb_id, media_type, title, platforms, genres, language, runtime, episodes, seasons, s1_episodes, overview, poster_url, rating, vote_count, year, adult_flag, release_date, backdrop_url, fetched_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18, now())
      ON CONFLICT (tmdb_id, media_type) DO UPDATE SET title=EXCLUDED.title,
        platforms=(SELECT array_agg(DISTINCT x) FROM unnest(catalog.platforms || EXCLUDED.platforms) x),
        genres=EXCLUDED.genres, language=EXCLUDED.language, runtime=EXCLUDED.runtime, episodes=EXCLUDED.episodes, seasons=EXCLUDED.seasons,
        s1_episodes=EXCLUDED.s1_episodes, overview=EXCLUDED.overview, poster_url=EXCLUDED.poster_url, rating=EXCLUDED.rating,
-       vote_count=EXCLUDED.vote_count, year=EXCLUDED.year, adult_flag=EXCLUDED.adult_flag, fetched_at=now()`,
-    [c.tmdbId, c.mediaType, c.title, c.platforms, c.genres, c.language, c.runtime, c.episodes, c.seasons, c.s1Episodes, c.overview, c.poster, c.rating, c.voteCount, c.year, c.adult],
+       vote_count=EXCLUDED.vote_count, year=EXCLUDED.year, adult_flag=EXCLUDED.adult_flag, release_date=EXCLUDED.release_date, backdrop_url=EXCLUDED.backdrop_url, fetched_at=now()`,
+    [c.tmdbId, c.mediaType, c.title, c.platforms, c.genres, c.language, c.runtime, c.episodes, c.seasons, c.s1Episodes, c.overview, c.poster, c.rating, c.voteCount, c.year, c.adult, c.releaseDate, c.backdrop],
   );
 }
 
 const rowToCand = (r: any): Cand => ({
   tmdbId: r.tmdb_id, mediaType: r.media_type, title: r.title, platforms: r.platforms, genres: r.genres, language: r.language,
   runtime: r.runtime, episodes: r.episodes, seasons: r.seasons, s1Episodes: r.s1_episodes, overview: r.overview ?? "", poster: r.poster_url,
-  rating: r.rating ?? 0, voteCount: r.vote_count ?? 0, year: r.year, adult: r.adult_flag,
+  rating: r.rating ?? 0, voteCount: r.vote_count ?? 0, year: r.year, adult: r.adult_flag, releaseDate: r.release_date_text ? String(r.release_date_text).slice(0, 10) : null, backdrop: r.backdrop_url ?? null,
 });
 
 /** Fresh (24h TTL) catalog rows matching the hard SQL filters: platform, language, format. */
 export async function queryCatalog(platforms: Platform[], langs: string[], format: "movie" | "tv" | "either"): Promise<Cand[]> {
   const rows = await q(
-    `SELECT * FROM catalog WHERE fetched_at > now() - interval '24 hours' AND platforms && $1::text[] AND language = ANY($2::text[])
+    `SELECT *, release_date::text AS release_date_text FROM catalog WHERE fetched_at > now() - interval '24 hours' AND platforms && $1::text[] AND language = ANY($2::text[])
        AND ($3::text IS NULL OR media_type = $3)`,
     [platforms, langs, format === "either" ? null : format],
   );
@@ -125,6 +129,7 @@ export interface LiveOpts {
 
 /** Live TMDB discover across the India catalog (not just this week), then details for the top ~30 and upsert into the catalog. */
 export async function discoverLive(o: LiveOpts): Promise<number> {
+  const providers = await getProviders();
   const types: ("movie" | "tv")[] = o.format === "either" ? ["movie", "tv"] : [o.format];
   const jobs = o.platforms.flatMap((platform) => types.flatMap((type) => [1, 2].map((page) => ({ platform, type, page }))));
   const found = await pool(jobs, 6, async (j) => {
@@ -132,7 +137,7 @@ export async function discoverLive(o: LiveOpts): Promise<number> {
     try {
       const r = await tmdb(`/discover/${j.type}`, {
         watch_region: "IN",
-        with_watch_providers: TMDB_PROVIDERS[j.platform].join("|"),
+        with_watch_providers: providers[j.platform].join("|"),
         with_watch_monetization_types: "flatrate",
         with_original_language: o.langs.join("|"),
         ...(ids.length ? { with_genres: ids.join("|") } : {}),

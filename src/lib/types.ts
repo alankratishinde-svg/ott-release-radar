@@ -17,6 +17,7 @@ export interface Title {
   releaseDate: string; // YYYY-MM-DD
   source: "watchmode" | "tmdb";
   unverified?: boolean;
+  dateApprox?: boolean; // release date came from TMDB discover (imprecise)
   tmdbPlatforms?: Platform[]; // platforms that came from TMDB discover, not Watchmode
 }
 
@@ -46,14 +47,25 @@ export interface Entry {
   isDare: boolean;
   isPick: boolean;
   tmdbPlatforms?: string[];
-  suggested?: boolean; // extra catalogue suggestion, not judged by Gemini
-  rating?: number; // TMDB rating, for suggestions
+  tmdbId?: number;
+  dateApprox?: boolean;
+  reasonLong?: string;
+  missed?: MissedSignals;
+}
+
+export interface MissedSignals {
+  language_match: boolean;
+  language: string;
+  genre_overlap: string[];
+  profile_genres: string[];
+  mood_tag: string;
+  notes: string[];
 }
 
 export interface DigestView {
   id: number | null;
   weekStart: string;
-  windowDays: number;
+  windowDays: number; // always 7 for new digests; older rows keep their original window and are shown as legacy
   sourceLabel: string;
   counts: { fetched: number; filtered: number; watch: number; skip: number };
   entries: Entry[]; // main titles, best first

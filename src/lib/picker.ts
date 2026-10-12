@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { ALL_PLATFORMS, budgetMinutes, candKey, discoverLive, fetchCand, GENRE_NAMES, LANG_CODE, queryCatalog, upsertCatalog, type Cand } from "./catalog";
 import { q, safe } from "./db";
 import { fetchReleases } from "./fetch";
+import { classifyWindow } from "./window";
 import { dur } from "./format";
 import { geminiGenerate, newestFlash } from "./gemini";
 import { upsertReleases } from "./pipeline";
@@ -104,11 +105,11 @@ function rank(cands: Cand[], r: PickRequest): Cand[] {
 }
 
 async function freshPool(r: PickRequest): Promise<Cand[]> {
-  const since = new Date(Date.now() - 21 * 86400e3).toISOString().slice(0, 10);
-  const load = () => q<{ source_id: string; platform: Platform }>(`SELECT source_id, platform FROM releases WHERE release_date >= $1`, [since]);
+  // Fresh = the Radar set, decided by the same classifyWindow rule as the dashboards (last 7 days, no other window).
+  const load = async () => (await q<{ source_id: string; platform: Platform; release_date: string }>(`SELECT source_id, platform, release_date::text AS release_date FROM releases WHERE release_date >= now() - interval '14 days'`)).filter((x) => classifyWindow(x.release_date) === "radar");
   let rows = await load();
-  if (new Set(rows.map((x) => x.source_id)).size < 15) {
-    const f = await fetchReleases(21);
+  if (new Set(rows.map((x) => x.source_id)).size < 5) {
+    const f = await fetchReleases();
     await upsertReleases(f.titles);
     rows = await load();
   }
