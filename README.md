@@ -27,6 +27,8 @@ The Radar, All Time Hits, the Telegram digest and the picker's "just landed" opt
 
 ## Components map
 
+![OTT Release Radar components map](public/components-map.png)
+
 Rendered as swimlanes at `/map`: **Radar flow**, **All Time Hits flow**, **Picker flow**. Columns are Actor, Trigger, Input, Context, Processing, AI, Output. Steps are numbered cards that staircase from top-left to bottom-right, Gemini Flash is its own row, Neon is the dashed bottom row, and the last card is Naman deciding.
 
 **Radar flow**

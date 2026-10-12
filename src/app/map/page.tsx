@@ -24,6 +24,13 @@ export default function MapPage() {
         <h1>Components map</h1>
         <p className="sub">One swimlane per flow. Every title belongs to exactly one dashboard, decided by one shared function: <code>classifyWindow</code>, which sends a title to the Radar if it was released in the last 7 days and to All Time Hits if not.</p>
 
+        <section className="swl" aria-label="End-to-end components map">
+          <h2>End-to-end map</h2>
+          <p className="sub">The whole system in one picture. <a href="/components-map.png" download style={{ textDecoration: "underline" }}>Download the PNG</a>.</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/components-map.png" alt="OTT Release Radar components map: ten numbered steps from the Friday cron through Releases APIs, taste profile, Radar rules, Gemini Flash, Telegram, web dashboards and the picker to Naman deciding, with Neon underneath as the persistence layer" width={2000} height={2512} loading="lazy" decoding="async" style={{ width: "100%", height: "auto", borderRadius: 12, border: "1px solid var(--line)" }} />
+        </section>
+
         <Swimlane
           title="Radar flow (7 days only)"
           blurb="Friday 6:00pm IST. Nothing older than 7 days can enter, and Telegram refuses to send anything that is not a 7-day digest."
