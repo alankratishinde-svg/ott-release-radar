@@ -192,3 +192,13 @@ button.ghost.alt { background: #ffffff1f; color: #fff; } button.ghost:disabled {
 @media (prefers-reduced-motion: reduce) { .vstamp, .spin { animation: none; } }
 .top.solid { background: #14161bf2; backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 .result { scroll-margin-top: 84px; }
+
+/* skipped group inside platform tabs */
+.skipgroup { margin-top: 26px; padding-top: 18px; border-top: 1px dashed var(--line); }
+.subhead { font-size: 17px; font-weight: 700; margin: 0 0 10px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; color: #d8dbe2; }
+.skipgroup .card .cimg { filter: grayscale(.75) brightness(.65); }
+.skipgroup .card:hover .cimg, .skipgroup .card.on .cimg { filter: none; }
+/* extra suggestions in "Worth your time" */
+.rlabel { flex: 0 0 auto; width: clamp(120px, 11vw, 150px); align-self: center; padding: 0 10px 0 14px; margin-left: 6px; border-left: 2px dashed var(--line); font-size: 14px; font-weight: 700; line-height: 1.3; color: #e5e5e5; }
+.rlabel small { display: block; margin-top: 6px; font-size: 11.5px; font-weight: 400; color: var(--dim); }
+.cbadge.star { color: var(--gold); }

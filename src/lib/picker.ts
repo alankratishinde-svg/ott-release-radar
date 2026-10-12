@@ -70,7 +70,7 @@ export function cacheKey(r: PickRequest) {
 }
 export const ipHash = (ip: string) => createHash("sha256").update(ip + (process.env.CRON_SECRET ?? "")).digest("hex").slice(0, 16);
 
-function genreOverlap(c: Cand, genres: string[]) {
+export function genreOverlap(c: Cand, genres: string[]) {
   let s = 0;
   for (const g of genres) s += Math.max(0, ...(GENRE_NAMES[g] ?? []).map(([n, w]) => (c.genres.includes(n) ? w : 0)));
   return s;

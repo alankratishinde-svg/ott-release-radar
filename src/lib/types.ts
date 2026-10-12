@@ -46,6 +46,8 @@ export interface Entry {
   isDare: boolean;
   isPick: boolean;
   tmdbPlatforms?: string[];
+  suggested?: boolean; // extra catalogue suggestion, not judged by Gemini
+  rating?: number; // TMDB rating, for suggestions
 }
 
 export interface DigestView {

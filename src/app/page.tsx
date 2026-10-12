@@ -1,7 +1,9 @@
 import Browse from "@/components/Browse";
 import Nav from "@/components/Nav";
 import TimeBudget from "@/components/TimeBudget";
-import { getOrCreateDigest } from "@/lib/pipeline";
+import { safe } from "@/lib/db";
+import { getOrCreateDigest, loadPrefs } from "@/lib/pipeline";
+import { suggestMovies } from "@/lib/suggest";
 import type { DigestView } from "@/lib/types";
 import { fmtTimeIST } from "@/lib/week";
 import Link from "next/link";
@@ -38,13 +40,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
   const skip = view.entries.filter((e) => e.verdict === "SKIP");
   const unjudged = view.entries.filter((e) => e.verdict === "UNAVAILABLE");
   const fetchedAt = fmtTimeIST(new Date(view.createdAt));
+  const prefs = await loadPrefs();
+  const extras = (await safe(() => suggestMovies(view!.entries.concat(view!.dare ? [view!.dare] : []).map((e) => e.title), prefs))) ?? [];
 
   return (
     <>
       <Nav updated={fetchedAt} />
       {view.windowDays > 7 && <div className="notice">Demo window: showing the last {view.windowDays} days because this week was quiet.</div>}
       {!view.storage && <div className="notice warn">Storage is unavailable, so this digest was generated live and not saved.</div>}
-      <Browse watch={watch} dare={view.dare} skip={skip} unjudged={unjudged} initialPlatform={platform ?? "all"} />
+      <Browse extras={extras} watch={watch} dare={view.dare} skip={skip} unjudged={unjudged} initialPlatform={platform ?? "all"} />
       <main className="below">
         <TimeBudget picks={[...watch, ...(view.dare ? [view.dare] : [])]} />
       </main>

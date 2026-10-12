@@ -24,7 +24,7 @@ Steps 1-8 are in flow order. Step 8 is Naman deciding what to watch. Also render
 
 ## Picker flow
 
-`/pick` ("Ugh, Fine. Watch This.") picks one title from the whole India catalogue for the mood you are in right now. Steps 1-7 are in flow order; also rendered at `/map`.
+`/pick` ("Let me help you pick") picks one title from the whole India catalogue for the mood you are in right now. Steps 1-7 are in flow order; also rendered at `/map`.
 
 | Actor | Trigger | Input | Context | Processing | AI | Output |
 |---|---|---|---|---|---|---|
