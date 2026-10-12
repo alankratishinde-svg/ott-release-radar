@@ -218,7 +218,7 @@ export default function RadarBoard({ pick, lineup, dare, skip, unjudged, today, 
   const skipOnTab = grave.length;
   const summary = pick && on(pick)
     ? "Tonight's pick above is the only new one worth your time here."
-    : `No new ${cur.label} release cleared the watch bar this week${skipOnTab || othersOnTab.length ? ` (${[skipOnTab ? `${skipOnTab} judged and skipped` : "", othersOnTab.length ? `${othersOnTab.length} outside your languages` : ""].filter(Boolean).join(", ")})` : ""}. Here is what is worth watching there instead.`;
+    : `No new ${cur.label} release cleared the watch bar this week${skipOnTab || othersOnTab.length ? ` (${[skipOnTab ? `${skipOnTab} judged and skipped` : "", othersOnTab.length ? `${othersOnTab.length} outside your languages or genres` : ""].filter(Boolean).join(", ")})` : ""}. Here is what is worth watching there instead.`;
 
   return (
     <>
@@ -256,7 +256,7 @@ export default function RadarBoard({ pick, lineup, dare, skip, unjudged, today, 
           )}
           {othersOnTab.length > 0 && (
             <div className="recs others" aria-label={`Also new on ${cur.label} this week`}>
-              <h3 className="subhead">Also new {cur.match ? `on ${cur.label} ` : ""}this week <span className="sec-note">{othersOnTab.length} {othersOnTab.length === 1 ? "title" : "titles"} outside Hindi, English and Tamil, so not judged</span></h3>
+              <h3 className="subhead">Also new {cur.match ? `on ${cur.label} ` : ""}this week <span className="sec-note">{othersOnTab.length} {othersOnTab.length === 1 ? "title" : "titles"} outside your languages or genres, so not judged</span></h3>
               <div className="waitrow">
                 {othersOnTab.map((o) => (
                   <div key={o.key} className="wait-card other">

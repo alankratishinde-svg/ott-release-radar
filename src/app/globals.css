@@ -285,3 +285,5 @@ button.ghost { font: 700 15px var(--sans), sans-serif; background: #fff; color: 
 .wait-card.rec:hover .wt { text-decoration: underline; }
 .wait-card.other .wp { filter: grayscale(.35); }
 .wait-card .rel { justify-self: start; margin-top: 2px; }
+.recs.others .waitrow { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; }
+.recs.others .wait-card { flex: 0 0 150px; }
