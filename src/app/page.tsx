@@ -3,6 +3,7 @@ import RadarBoard, { type Teaser } from "@/components/RadarBoard";
 import TimeBudget from "@/components/TimeBudget";
 import { safe } from "@/lib/db";
 import { loadHits } from "@/lib/hits";
+import { radarOthers, recsByPlatform } from "@/lib/radar-extras";
 import { getDigestForPage } from "@/lib/pipeline";
 import { splitSections } from "@/lib/sections";
 import type { DigestView } from "@/lib/types";
@@ -46,11 +47,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
   const worth = watch.length + (view.dare ? 1 : 0);
   const updated = fmtTimeIST(new Date(view.createdAt));
 
+  // Every platform tab always has something: best All Time Hits for that platform, plus this week's unjudged (other-language) releases.
+  const hitsData = await safe(loadHits);
+  const recs = recsByPlatform(hitsData?.hits ?? []);
+  const judgedKeys = new Set([...view.entries, ...(view.dare ? [view.dare] : [])].filter((e) => e.tmdbId).map((e) => `${e.mediaType}:${e.tmdbId}`));
+  const others = (await safe(() => radarOthers(judgedKeys))) ?? [];
+
   // Quiet week: fewer than 3 radar titles. The strip is links only: it is not counted in the stats, the digest or Telegram.
   let teasers: Teaser[] = [];
   if (view.counts.filtered < 3) {
-    const h = await safe(loadHits);
-    teasers = (h?.hits ?? []).sort((a, b) => b.score - a.score).slice(0, 4).map((x) => ({ key: x.key, title: x.title, poster: x.poster, year: x.year, platforms: x.platforms, rating: x.rating }));
+    teasers = (hitsData?.hits ?? []).sort((a, b) => b.score - a.score).slice(0, 4).map((x) => ({ key: x.key, title: x.title, poster: x.poster, year: x.year, platforms: x.platforms, rating: x.rating }));
   }
 
   return (
@@ -65,7 +71,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
         <span className="upd">Updated {updated}{refreshing ? ", refreshing" : ""}</span>
       </div>
       {!view.storage && <div className="notice warn">Storage is unavailable, so this digest was generated live and not saved.</div>}
-      <RadarBoard pick={pick} lineup={lineup} dare={view.dare} skip={skip} unjudged={unjudged} today={today} initialPlatform={platform ?? "all"} teasers={teasers}>
+      <RadarBoard pick={pick} lineup={lineup} dare={view.dare} skip={skip} unjudged={unjudged} today={today} initialPlatform={platform ?? "all"} teasers={teasers} others={others} recs={recs}>
         <main className="band below">
           <TimeBudget picks={[...watch, ...(view.dare ? [view.dare] : [])]} />
         </main>

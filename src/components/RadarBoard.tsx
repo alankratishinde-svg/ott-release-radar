@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { preload } from "react-dom";
 import { length } from "@/lib/format";
 import type { Entry } from "@/lib/types";
+import type { Other, Rec } from "@/lib/radar-extras";
 import Poster from "./Poster";
 import ReleaseBadge from "./ReleaseBadge";
 import SendButton from "./SendButton";
@@ -171,7 +172,7 @@ function CaseFile({ e, today }: { e: Entry; today: string }) {
 }
 
 /* ---------- board ---------- */
-export default function RadarBoard({ pick, lineup, dare, skip, unjudged, today, initialPlatform = "all", teasers, children }: { pick: Entry | null; lineup: Entry[]; dare: Entry | null; skip: Entry[]; unjudged: Entry[]; today: string; initialPlatform?: string; teasers: Teaser[]; children?: ReactNode }) {
+export default function RadarBoard({ pick, lineup, dare, skip, unjudged, today, initialPlatform = "all", teasers, others = [], recs = {}, children }: { pick: Entry | null; lineup: Entry[]; dare: Entry | null; skip: Entry[]; unjudged: Entry[]; today: string; initialPlatform?: string; teasers: Teaser[]; others?: Other[]; recs?: Record<string, Rec[]>; children?: ReactNode }) {
   const [tab, setTab] = useState(TABS.some((t) => t.id === initialPlatform) ? initialPlatform : "all");
   const [flash, setFlash] = useState<string | null>(null);
   const [pinned, setPinned] = useState<string | null>(null);
@@ -210,6 +211,14 @@ export default function RadarBoard({ pick, lineup, dare, skip, unjudged, today, 
   const viaTmdb = all.some((e) => on(e) && (cur.match ? e.tmdbPlatforms?.includes(cur.match) : (e.tmdbPlatforms?.length ?? 0) > 0));
   const emptyText = cur.id === "jiohotstar" ? "Nothing new on JioHotstar in the last 7 days." : cur.match ? `Nothing new on ${cur.label} this week. Suspicious.` : "Nothing new this week. Suspicious.";
   const totalOnTab = (pick && on(pick) ? 1 : 0) + grid.length + grave.length;
+  const othersOnTab = others.filter((o) => !cur.match || o.platforms.includes(cur.match));
+  const recList = recs[cur.match ?? "all"] ?? [];
+  // Every platform tab always recommends something. "All" only needs help when the week's lineup is thin.
+  const showRecs = recList.length > 0 && (cur.match ? true : grid.length < 3);
+  const skipOnTab = grave.length;
+  const summary = pick && on(pick)
+    ? "Tonight's pick above is the only new one worth your time here."
+    : `No new ${cur.label} release cleared the watch bar this week${skipOnTab || othersOnTab.length ? ` (${[skipOnTab ? `${skipOnTab} judged and skipped` : "", othersOnTab.length ? `${othersOnTab.length} outside your languages` : ""].filter(Boolean).join(", ")})` : ""}. Here is what is worth watching there instead.`;
 
   return (
     <>
@@ -227,9 +236,39 @@ export default function RadarBoard({ pick, lineup, dare, skip, unjudged, today, 
         </div>
         <div role="tabpanel" id="tabpanel" aria-labelledby={`tab-${tab}`} className="tabpanel">
           {viaTmdb && <p className="srcbadge">Includes TMDB data{cur.match ? ` for ${cur.match}` : ""}: Watchmode had thin coverage there, so those release dates are less precise.</p>}
-          {totalOnTab === 0 && <p className="tabempty">{emptyText}</p>}
-          {totalOnTab > 0 && grid.length === 0 && <p className="tabempty">{pick && on(pick) ? "Tonight's pick above is the only one worth your time here." : `Nothing worth watching on ${cur.label} this week.`}</p>}
+          {totalOnTab === 0 && othersOnTab.length === 0 && <p className="tabempty">{emptyText}</p>}
+          {totalOnTab > 0 && grid.length === 0 && <p className="tabempty">{summary}</p>}
           {grid.length > 0 && <div className="lgrid">{grid.map((e) => <LineupCard key={idOf(e)} e={e} today={today} flash={flash === idOf(e)} />)}</div>}
+          {showRecs && (
+            <div className="recs" aria-label={`Best on ${cur.label} right now`}>
+              <h3 className="subhead">Best on {cur.match ? cur.label : "all three platforms"} right now <span className="sec-note">older hits picked for your taste, not part of this week&apos;s radar. <a href={`/hits${cur.match ? `?platform=${cur.id}` : ""}`}>See all</a></span></h3>
+              <div className="waitrow">
+                {recList.map((r) => (
+                  <a key={r.key} href={`/hits${cur.match ? `?platform=${cur.id}` : ""}`} className="wait-card rec">
+                    <span className="wp"><Poster src={r.poster} alt={r.title} sizes="140px" /></span>
+                    <span className="wt">{r.title}</span>
+                    <span className="ws">{r.year} · ★ {r.rating.toFixed(1)}{!cur.match ? ` · ${r.platforms.join(" + ")}` : ""}</span>
+                    <span className="wwhy">{r.why}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+          {othersOnTab.length > 0 && (
+            <div className="recs others" aria-label={`Also new on ${cur.label} this week`}>
+              <h3 className="subhead">Also new {cur.match ? `on ${cur.label} ` : ""}this week <span className="sec-note">{othersOnTab.length} {othersOnTab.length === 1 ? "title" : "titles"} outside Hindi, English and Tamil, so not judged</span></h3>
+              <div className="waitrow">
+                {othersOnTab.map((o) => (
+                  <div key={o.key} className="wait-card other">
+                    <span className="wp"><Poster src={o.poster} alt={o.title} sizes="140px" /></span>
+                    <span className="wt">{o.title}</span>
+                    <span className="ws">{o.language}{o.genres[0] ? ` · ${o.genres.slice(0, 2).join(", ")}` : ""}</span>
+                    <ReleaseBadge date={o.releaseDate} approx={o.approx} today={today} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

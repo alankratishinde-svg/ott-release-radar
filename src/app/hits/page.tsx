@@ -12,7 +12,8 @@ export const metadata = {
   description: "Older than a week, still worth your Friday. Proven hits on Netflix, Prime Video and JioHotstar in India, picked for your taste.",
 };
 
-export default async function HitsPage() {
+export default async function HitsPage({ searchParams }: { searchParams: Promise<{ platform?: string }> }) {
+  const { platform } = await searchParams;
   let data = await safe(loadHits);
   // Cached data is served as is. Only a missing or stale (>24h) catalog triggers a refresh (one Gemini batch), and a stale one refreshes in the background.
   if (!data || data.hits.length < 12) {
@@ -37,6 +38,7 @@ export default async function HitsPage() {
             hits={hits}
             shelves={shelves.map((s) => ({ name: s.name, items: s.items }))}
             refreshedAt={data?.refreshedAt ? fmtTimeIST(data.refreshedAt) : null}
+            initialPlatform={platform}
           />
         )}
       </main>

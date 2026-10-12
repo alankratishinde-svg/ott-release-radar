@@ -57,8 +57,8 @@ const Cards = ({ items, pinned, setPinned }: { items: Hit[]; pinned: string | nu
   <WidenCards items={items} idOf={(h) => h.key.replace(":", "-")} perRow={5} rowHeight={440} label={(h) => h.title} tone="hits" pinnedId={pinned} onPin={setPinned} head={(h) => <HitHead h={h} />} summary={(h) => <p className="epitaph good">{h.reason}</p>} full={(h) => <HitFull h={h} />} />
 );
 
-export default function HitsBoard({ hits, shelves, refreshedAt }: { hits: Hit[]; shelves: { name: string; items: Hit[] }[]; refreshedAt: string | null }) {
-  const [tab, setTab] = useState("all");
+export default function HitsBoard({ hits, shelves, refreshedAt, initialPlatform }: { hits: Hit[]; shelves: { name: string; items: Hit[] }[]; refreshedAt: string | null; initialPlatform?: string }) {
+  const [tab, setTab] = useState(TABS.some((t) => t.id === initialPlatform) ? initialPlatform! : "all");
   const [lang, setLang] = useState("any");
   const [format, setFormat] = useState("any");
   const [genre, setGenre] = useState("any");
