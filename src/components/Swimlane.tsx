@@ -23,8 +23,10 @@ export default function Swimlane({ title, blurb, actors, steps, neon }: { title:
       <p className="sub">{blurb}</p>
       <div className="swscroll">
         <div className="swgrid" role="table" aria-label={`${title} swimlane`}>
-          <div className="swh actorh" role="columnheader">Actor</div>
-          {COLS.map((c) => <div className="swh" key={c} role="columnheader">{c}</div>)}
+          <div className="swrow swhead" role="row">
+            <div className="swh actorh" role="columnheader">Actor</div>
+            {COLS.map((c) => <div className="swh" key={c} role="columnheader">{c}</div>)}
+          </div>
           {rows.map((a, ri) => {
             const isNeon = ri === actors.length;
             return (

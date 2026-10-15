@@ -1,6 +1,6 @@
 :root {
   --bg: #14161b; --panel: #1d2027; --panel2: #252932; --line: #2f3440; --text: #f2f2f2; --dim: #a9aeb9;
-  --red: #e5303a; --red-text: #ff6a72; --watch: #46d369; --skip: #f2706a; --dare: #b88cff; --gold: #f5c518; --amber: #ffcf6b;
+  --red: #d62b36; --red-text: #ff6a72; --watch: #46d369; --skip: #f2706a; --dare: #b88cff; --gold: #f5c518; --amber: #ffcf6b;
   --pad: clamp(16px, 4vw, 56px);
 }
 * { box-sizing: border-box; }

@@ -21,7 +21,7 @@ export default function SendTitleButton({ titleKey, title }: { titleKey: string 
   }
   return (
     <span className="tgwrap">
-      <button type="button" className="tgbtn" onClick={go} disabled={busy} aria-label={`Send ${title} to my Telegram`}>{busy ? "Sending…" : "Send to Telegram"}</button>
+      <button type="button" className="tgbtn" onClick={go} disabled={busy} aria-label={`Send to Telegram: ${title}`}>{busy ? "Sending…" : "Send to Telegram"}</button>
       {msg && <span className="tgmsg" role="status">{msg}</span>}
     </span>
   );
