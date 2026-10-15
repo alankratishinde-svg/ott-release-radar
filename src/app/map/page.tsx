@@ -26,9 +26,9 @@ export default function MapPage() {
 
         <section className="swl" aria-label="End-to-end components map">
           <h2>End-to-end map</h2>
-          <p className="sub">The whole system in one picture. <a href="/components-map.png" download style={{ textDecoration: "underline" }}>Download the PNG</a>.</p>
+          <p className="sub">The whole system in one picture. <a href="/components-map.png" download style={{ textDecoration: "underline" }}>Download the full-resolution PNG</a>.</p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/components-map.png" alt="OTT Release Radar components map: ten numbered steps from the Friday cron through Releases APIs, taste profile, Radar rules, Gemini Flash, Telegram, web dashboards and the picker to Naman deciding, with Neon underneath as the persistence layer" width={2000} height={2512} loading="lazy" decoding="async" style={{ width: "100%", height: "auto", borderRadius: 12, border: "1px solid var(--line)" }} />
+          <img src="/components-map-web.png" alt="OTT Release Radar components map: ten numbered steps from the Friday cron through Releases APIs, taste profile, Radar rules, Gemini Flash, Telegram, web dashboards and the picker to Naman deciding, with Neon underneath as the persistence layer" width={2000} height={2512} decoding="async" style={{ width: "100%", height: "auto", borderRadius: 12, border: "1px solid var(--line)" }} />
         </section>
 
         <Swimlane
