@@ -36,7 +36,7 @@ export default async function HitsPage({ searchParams }: { searchParams: Promise
         {hits.length > 0 && (
           <HitsBoard
             hits={hits}
-            shelves={shelves.map((s) => ({ name: s.name, items: s.items }))}
+            shelves={shelves.map((s) => ({ name: s.name, keys: s.items.map((h) => h.key) }))}
             refreshedAt={data?.refreshedAt ? fmtTimeIST(data.refreshedAt) : null}
             initialPlatform={platform}
           />

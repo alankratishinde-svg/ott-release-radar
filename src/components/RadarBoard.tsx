@@ -7,6 +7,7 @@ import type { Other } from "@/lib/radar-extras";
 import Poster from "./Poster";
 import ReleaseBadge from "./ReleaseBadge";
 import SendButton from "./SendButton";
+import SendTitleButton from "./SendTitleButton";
 import WidenCards from "./WidenCards";
 
 const idOf = (e: Entry) => (e.tmdbId ? `${e.mediaType}-${e.tmdbId}` : e.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
@@ -131,6 +132,7 @@ function LineupCard({ e, today, flash }: { e: Entry; today: string; flash: boole
         <p className="tags">{e.genres.slice(0, 3).map((g) => <span key={g}>{g}</span>)}</p>
         <p className="lsyn">{e.synopsis[0]}<br />{e.synopsis[1]}</p>
         <ReleaseBadge date={e.releaseDate} approx={e.dateApprox} today={today} />
+        <SendTitleButton titleKey={e.tmdbId ? `${e.mediaType}:${e.tmdbId}` : null} title={e.title} />
       </div>
     </article>
   );
@@ -163,6 +165,7 @@ function CaseFile({ e, today }: { e: Entry; today: string }) {
         {m?.notes?.map((n) => <li key={n}>{n}</li>)}
       </ul>
       <div className="bar" role="img" aria-label={`Match score ${e.score} out of 100`}><i style={{ width: `${e.score}%` }} /><span>{e.score}/100, WATCH needs 70</span></div>
+      <SendTitleButton titleKey={e.tmdbId ? `${e.mediaType}:${e.tmdbId}` : null} title={e.title} />
       {e.tmdbId && <a className="watchany" href={`https://www.themoviedb.org/${e.mediaType}/${e.tmdbId}/watch?locale=IN`} target="_blank" rel="noopener noreferrer">Watch anyway?</a>}
       <p className="cmeta">{length(e)} · {e.genres.join(", ")} · <ReleaseBadge date={e.releaseDate} approx={e.dateApprox} today={today} /></p>
       <p className="csyn">{e.synopsis[0]} {e.synopsis[1]}</p>

@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { dur } from "@/lib/format";
 import type { Hit } from "@/lib/hits";
 import Poster from "./Poster";
+import SendTitleButton from "./SendTitleButton";
 import WidenCards from "./WidenCards";
 
 const TABS = [
@@ -50,6 +51,7 @@ function HitFull({ h }: { h: Hit }) {
       <p className="csyn full">{h.overview || "no synopsis available"}</p>
       <p className="cmeta">{lengthOf(h)} · {h.genres.join(", ")} · {h.voteCount.toLocaleString("en-IN")} votes</p>
       <Link className="watchany" href={pickerHref(h)}>Use in picker</Link>
+      <SendTitleButton titleKey={h.key} title={h.title} />
     </div>
   );
 }
@@ -57,7 +59,7 @@ const Cards = ({ items, pinned, setPinned }: { items: Hit[]; pinned: string | nu
   <WidenCards items={items} idOf={(h) => h.key.replace(":", "-")} perRow={5} rowHeight={440} label={(h) => h.title} tone="hits" pinnedId={pinned} onPin={setPinned} head={(h) => <HitHead h={h} />} summary={(h) => <p className="epitaph good">{h.reason}</p>} full={(h) => <HitFull h={h} />} />
 );
 
-export default function HitsBoard({ hits, shelves, refreshedAt, initialPlatform }: { hits: Hit[]; shelves: { name: string; items: Hit[] }[]; refreshedAt: string | null; initialPlatform?: string }) {
+export default function HitsBoard({ hits, shelves, refreshedAt, initialPlatform }: { hits: Hit[]; shelves: { name: string; keys: string[] }[]; refreshedAt: string | null; initialPlatform?: string }) {
   const [tab, setTab] = useState(TABS.some((t) => t.id === initialPlatform) ? initialPlatform! : "all");
   const [lang, setLang] = useState("any");
   const [format, setFormat] = useState("any");
@@ -66,6 +68,7 @@ export default function HitsBoard({ hits, shelves, refreshedAt, initialPlatform 
   const [pinned, setPinned] = useState<string | null>(null);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const cur = TABS.find((t) => t.id === tab)!;
+  const byKey = useMemo(() => new Map(hits.map((h) => [h.key, h] as const)), [hits]);
 
   const sorter = (a: Hit, b: Hit) => (sort === "rating" ? b.rating - a.rating : sort === "newest" ? b.releaseDate.localeCompare(a.releaseDate) : b.score - a.score || b.rating - a.rating);
   const passes = (h: Hit) =>
@@ -110,7 +113,7 @@ export default function HitsBoard({ hits, shelves, refreshedAt, initialPlatform 
             {filtered.length === 0 ? <p className="tabempty">No all-time hit matches that combination. Loosen a filter.</p> : <Cards items={filtered} pinned={pinned} setPinned={setPinned} />}
           </section>
         ) : (
-          shelves.map((s) => (
+          shelves.map((s) => ({ name: s.name, items: s.keys.map((k) => byKey.get(k)).filter((h): h is Hit => !!h) })).map((s) => (
             <section className="band flush" key={s.name} aria-label={s.name}>
               <h2 className="sec">{s.name} <span className="sec-note">{s.items.length}</span></h2>
               <Cards items={[...s.items].sort(sorter)} pinned={pinned} setPinned={setPinned} />
