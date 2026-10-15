@@ -223,7 +223,8 @@ export async function getOrCreateDigest(opts: { fresh?: boolean } = {}): Promise
 export async function getDigestForPage(): Promise<{ view: DigestView; cached: boolean; refreshing: boolean }> {
   const latest = await safe(latestDigest);
   if (latest && latest.windowDays === RADAR_DAYS) {
-    const stale = Date.now() - new Date(latest.createdAt).getTime() >= CACHE_MS;
+    const agedOut = [...latest.entries, ...(latest.dare ? [latest.dare] : [])].some((e) => !e.releaseDate || classifyWindow(e.releaseDate) !== "radar");
+    const stale = agedOut || Date.now() - new Date(latest.createdAt).getTime() >= CACHE_MS; // a title that aged past 7 days also triggers a refresh
     if (stale) after(() => generateDigest().then(() => undefined, (e) => console.error("background refresh failed:", e.message)));
     return { view: latest, cached: true, refreshing: stale };
   }

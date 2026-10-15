@@ -287,3 +287,4 @@ button.ghost { font: 700 15px var(--sans), sans-serif; background: #fff; color: 
 .wait-card .rel { justify-self: start; margin-top: 2px; }
 .recs.others .waitrow { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; }
 .recs.others .wait-card { flex: 0 0 150px; }
+.hitslink { margin: 6px 0 14px; color: var(--dim); font-size: 15px; } .hitslink a { color: #fff; text-decoration: underline; }

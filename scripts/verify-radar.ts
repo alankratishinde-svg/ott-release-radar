@@ -1,5 +1,5 @@
 import { latestDigest } from "../src/lib/pipeline";
-import { splitSections } from "../src/lib/sections";
+import { radarView } from "../src/lib/sections";
 import { assertSevenDay } from "../src/lib/pipeline";
 import { ageDays, classifyWindow } from "../src/lib/window";
 
@@ -8,7 +8,8 @@ import { ageDays, classifyWindow } from "../src/lib/window";
   const view = await latestDigest();
   if (!view) { console.error("FAIL: no digest"); process.exit(1); }
   const at = new Date(view.createdAt);
-  const s = splitSections(view);
+  const s = radarView(view, new Date()); // the page's view: as of now
+  if (s.dropped) console.log(`note: ${s.dropped} stored title(s) have aged past 7 days and are dropped at view time`);
   const sections: Record<string, typeof s.watch> = { hero: s.pick ? [s.pick] : [], lineup: s.lineup, dare: s.dare ? [s.dare] : [], unjudged: s.unjudged, graveyard: s.skip };
   const seen = new Map<string, string>();
   const problems: string[] = [];
@@ -17,7 +18,7 @@ import { ageDays, classifyWindow } from "../src/lib/window";
       const id = e.tmdbId ? `${e.mediaType}:${e.tmdbId}` : e.title.toLowerCase();
       if (seen.has(id)) problems.push(`"${e.title}" appears in both ${seen.get(id)} and ${name}`);
       seen.set(id, name);
-      if (classifyWindow(e.releaseDate, at) !== "radar") problems.push(`"${e.title}" (${e.releaseDate}) is ${ageDays(e.releaseDate, at)} days old in section ${name}`);
+      if (classifyWindow(e.releaseDate, new Date()) !== "radar") problems.push(`"${e.title}" (${e.releaseDate}) is ${ageDays(e.releaseDate, new Date())} days old in section ${name}`);
       if (name === "graveyard" && ((e.reason ?? "").length < 40 || (e.reasonLong ?? "").length < 80)) problems.push(`"${e.title}" has a weak SKIP reason`);
     }
   }

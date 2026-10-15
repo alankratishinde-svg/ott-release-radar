@@ -1,5 +1,4 @@
 import { q } from "./db";
-import type { Hit } from "./hits";
 import { classifyWindow } from "./window";
 
 export interface Other {
@@ -13,7 +12,6 @@ export interface Other {
   mediaType: "movie" | "tv";
   approx: boolean;
 }
-export interface Rec { key: string; title: string; poster: string | null; year: string | null; rating: number; why: string; platforms: string[] }
 
 const langName = (c: string) => {
   try { return new Intl.DisplayNames(["en"], { type: "language" }).of(c) ?? c; } catch { return c; }
@@ -33,13 +31,4 @@ export async function radarOthers(judgedKeys: Set<string>): Promise<Other[]> {
     by.set(r.source_id, { key: r.source_id, title: r.title, poster: r.poster_url, language: langName(r.original_language), genres: r.genres ?? [], releaseDate: r.release_date, platforms: [r.platform], mediaType: r.media_type, approx: r.source === "tmdb" });
   }
   return [...by.values()];
-}
-
-/** Best All Time Hits per platform (and overall), so every tab always has something to recommend. Labelled as older titles in the UI. */
-export function recsByPlatform(hits: Hit[], n = 4): Record<string, Rec[]> {
-  const toRec = (h: Hit): Rec => ({ key: h.key, title: h.title, poster: h.poster, year: h.year, rating: h.rating, why: h.reason, platforms: h.platforms });
-  const sorted = [...hits].sort((a, b) => b.score - a.score || b.rating - a.rating);
-  const out: Record<string, Rec[]> = { all: sorted.slice(0, n).map(toRec) };
-  for (const p of ["Netflix", "Prime Video", "JioHotstar"]) out[p] = sorted.filter((h) => (h.platforms as string[]).includes(p)).slice(0, n).map(toRec);
-  return out;
 }
